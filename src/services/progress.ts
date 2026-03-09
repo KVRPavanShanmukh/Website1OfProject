@@ -16,7 +16,7 @@ export interface CustomTopic {
 
 export interface CompletionEntry {
   id: string;
-  type: 'problem' | 'challenge' | 'topic';
+  type: 'problem' | 'topic';
   title: string;
   timestamp: number;
 }
@@ -26,7 +26,6 @@ export interface Progress {
   completedTopics: string[]; // For search-based topics
   lastSearched: string[];
   customTopics: CustomTopic[];
-  completedChallenges: string[]; // IDs of completed challenges
   completionHistory: CompletionEntry[];
 }
 
@@ -38,7 +37,6 @@ export const progressService = {
       completedTopics: [], 
       lastSearched: [], 
       customTopics: [],
-      completedChallenges: [],
       completionHistory: []
     };
     if (!data) return defaultProgress;
@@ -62,20 +60,6 @@ export const progressService = {
     const p = progressService.getProgress();
     p.userName = name;
     progressService.saveProgress(p);
-    return p;
-  },
-  completeChallenge: (id: string, title: string) => {
-    const p = progressService.getProgress();
-    if (!p.completedChallenges.includes(id)) {
-      p.completedChallenges.push(id);
-      p.completionHistory.push({
-        id,
-        type: 'challenge',
-        title,
-        timestamp: Date.now()
-      });
-      progressService.saveProgress(p);
-    }
     return p;
   },
   addCustomTopic: (title: string, problems: any[] = []) => {

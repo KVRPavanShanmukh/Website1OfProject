@@ -69,3 +69,16 @@ export async function getSimulatedStudentResponse(lectureContent: string, instru
   });
   return response.text;
 }
+
+export async function chatWithAI(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[]) {
+  const chat = ai.chats.create({
+    model: "gemini-3-flash-preview",
+    config: {
+      systemInstruction: "You are a helpful AI assistant for a computer science learning platform called Shanmukh AI VidyaPeettham. Help users with their coding questions, roadmap planning, and technical concepts.",
+    },
+    history: history,
+  });
+
+  const response = await chat.sendMessage({ message });
+  return response.text;
+}

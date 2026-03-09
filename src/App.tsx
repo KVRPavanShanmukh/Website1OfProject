@@ -27,9 +27,6 @@ import {
   Flame,
   Star,
   Code2,
-  Play,
-  RotateCcw,
-  AlertCircle,
   Folder,
   FolderOpen,
   ExternalLink,
@@ -52,12 +49,12 @@ import {
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area 
 } from 'recharts';
 import { format, subDays, startOfDay, isSameDay, eachDayOfInterval } from 'date-fns';
-import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, getGeneralizedTopicName } from './services/gemini';
+import confetti from 'canvas-confetti';
+import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, getGeneralizedTopicName, chatWithAI } from './services/gemini';
 import { progressService, Progress } from './services/progress';
-import { challenges, Challenge } from './constants/challenges';
 import { cn } from './lib/utils';
 
-type Tab = 'search' | 'progress' | 'meet' | 'challenges' | 'analytics' | 'about' | 'projects';
+type Tab = 'search' | 'progress' | 'meet' | 'analytics' | 'about' | 'projects';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('search');
@@ -70,13 +67,6 @@ export default function App() {
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
   const [userNameInput, setUserNameInput] = useState(progress.userName);
   
-  // Challenges State
-  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
-  const [userCode, setUserCode] = useState('');
-  const [challengeFeedback, setChallengeFeedback] = useState<{ success: boolean; message: string } | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>('All');
-  const [filterDifficulty, setFilterDifficulty] = useState<string>('All');
-
   // Meet State
   const [isMeetActive, setIsMeetActive] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -88,6 +78,13 @@ export default function App() {
   const [isStudentTyping, setIsStudentTyping] = useState(false);
   const [isPresenting, setIsPresenting] = useState(false);
   const [audienceState, setAudienceState] = useState<'attentive' | 'engaged' | 'idle'>('attentive');
+  
+  // Sidebar Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatTyping, setIsChatTyping] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -231,40 +228,37 @@ export default function App() {
     pdf.save(`${progress.userName || 'Student'}_Certificate.pdf`);
   };
 
-  const runChallenge = () => {
-    if (!selectedChallenge) return;
-    try {
-      // Create a function from the user's code
-      // We assume the function name matches the one in starter code
-      const funcName = selectedChallenge.starterCode.match(/function\s+(\w+)/)?.[1];
-      if (!funcName) throw new Error("Could not find function name");
+  const currentProgress = calculateProgress();
+  const masteredCount = progress.completedTopics.length + progress.customTopics.filter(t => t.completed).length;
 
-      const userFunc = new Function(`${userCode}; return ${funcName};`)();
-      
-      let allPassed = true;
-      for (const test of selectedChallenge.testCases) {
-        const result = userFunc(...test.input);
-        if (JSON.stringify(result) !== JSON.stringify(test.expected)) {
-          allPassed = false;
-          setChallengeFeedback({ 
-            success: false, 
-            message: `Failed test case: input(${JSON.stringify(test.input)}) expected ${JSON.stringify(test.expected)} but got ${JSON.stringify(result)}` 
-          });
-          break;
-        }
-      }
-
-      if (allPassed) {
-        setChallengeFeedback({ success: true, message: "All test cases passed! Great job!" });
-        setProgress(progressService.completeChallenge(selectedChallenge.id, selectedChallenge.title));
-      }
-    } catch (err: any) {
-      setChallengeFeedback({ success: false, message: `Error: ${err.message}` });
-    }
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#3b82f6', '#8b5cf6']
+    });
   };
 
-  const currentProgress = calculateProgress();
-  const masteredCount = progress.completedTopics.length + progress.customTopics.filter(t => t.completed).length + progress.completedChallenges.length;
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatTyping) return;
+
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    const newHistory = [...chatMessages, { role: 'user' as const, parts: [{ text: userMessage }] }];
+    setChatMessages(newHistory);
+    setIsChatTyping(true);
+
+    try {
+      const response = await chatWithAI(userMessage, chatMessages);
+      setChatMessages([...newHistory, { role: 'model' as const, parts: [{ text: response || "I'm sorry, I couldn't process that." }] }]);
+    } catch (err) {
+      console.error("Chat error:", err);
+    } finally {
+      setIsChatTyping(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
@@ -283,7 +277,6 @@ export default function App() {
           {[
             { id: 'search', icon: Search, label: 'Global Search' },
             { id: 'progress', icon: BookOpen, label: 'My Roadmap' },
-            { id: 'challenges', icon: Code2, label: 'Challenges' },
             { id: 'projects', icon: Briefcase, label: 'Projects' },
             { id: 'analytics', icon: TrendingUp, label: 'Analytics' },
             { id: 'meet', icon: Video, label: 'Dummy Meet' },
@@ -455,163 +448,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-            </motion.div>
-          )}
-
-          {activeTab === 'challenges' && (
-            <motion.div 
-              key="challenges"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-6xl mx-auto px-6 py-12"
-            >
-              <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                  <h2 className="text-4xl font-black mb-2">Coding Challenges</h2>
-                  <p className="text-zinc-400">Sharpen your skills with CS-focused problems.</p>
-                </div>
-                
-                <div className="flex flex-wrap gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Category</label>
-                    <select 
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className="bg-zinc-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none min-w-[140px]"
-                    >
-                      <option value="All">All Categories</option>
-                      {Array.from(new Set(challenges.map(c => c.category))).map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Difficulty</label>
-                    <select 
-                      value={filterDifficulty}
-                      onChange={(e) => setFilterDifficulty(e.target.value)}
-                      className="bg-zinc-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none min-w-[140px]"
-                    >
-                      <option value="All">All Difficulties</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Challenge List */}
-                <div className="space-y-4">
-                  {challenges
-                    .filter(c => (filterCategory === 'All' || c.category === filterCategory) && (filterDifficulty === 'All' || c.difficulty === filterDifficulty))
-                    .map((challenge) => (
-                    <button
-                      key={challenge.id}
-                      onClick={() => {
-                        setSelectedChallenge(challenge);
-                        setUserCode(challenge.starterCode);
-                        setChallengeFeedback(null);
-                      }}
-                      className={cn(
-                        "w-full p-6 glass rounded-2xl border transition-all text-left group relative overflow-hidden",
-                        selectedChallenge?.id === challenge.id 
-                          ? "border-emerald-500/50 bg-emerald-500/5" 
-                          : "border-white/5 hover:border-white/20",
-                        progress.completedChallenges.includes(challenge.id) && "border-emerald-500/20"
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded",
-                          challenge.difficulty === 'Easy' ? "bg-emerald-500/10 text-emerald-400" :
-                          challenge.difficulty === 'Medium' ? "bg-yellow-500/10 text-yellow-400" :
-                          "bg-red-500/10 text-red-400"
-                        )}>
-                          {challenge.difficulty}
-                        </span>
-                        {progress.completedChallenges.includes(challenge.id) && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        )}
-                      </div>
-                      <h3 className="font-bold text-lg mb-1">{challenge.title}</h3>
-                      <p className="text-xs text-zinc-500">{challenge.category}</p>
-                    </button>
-                  ))}
-                  {challenges.filter(c => (filterCategory === 'All' || c.category === filterCategory) && (filterDifficulty === 'All' || c.difficulty === filterDifficulty)).length === 0 && (
-                    <div className="p-12 text-center glass rounded-2xl border border-dashed border-white/10">
-                      <p className="text-zinc-500 text-sm">No challenges found matching these filters.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Editor Area */}
-                <div className="lg:col-span-2">
-                  {selectedChallenge ? (
-                    <div className="flex flex-col h-full glass rounded-3xl border border-white/10 overflow-hidden">
-                      <div className="p-6 border-b border-white/10 bg-white/5">
-                        <h3 className="text-xl font-bold mb-2">{selectedChallenge.title}</h3>
-                        <p className="text-sm text-zinc-400 leading-relaxed">{selectedChallenge.description}</p>
-                      </div>
-                      
-                      <div className="flex-1 flex flex-col p-6 gap-4">
-                        <div className="flex-1 relative font-mono text-sm">
-                          <textarea
-                            value={userCode}
-                            onChange={(e) => setUserCode(e.target.value)}
-                            className="w-full h-full bg-black/40 border border-white/10 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none text-emerald-400"
-                            spellCheck={false}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <button 
-                            onClick={() => setUserCode(selectedChallenge.starterCode)}
-                            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-white transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            Reset Code
-                          </button>
-                          <button 
-                            onClick={runChallenge}
-                            className="px-8 py-3 bg-emerald-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
-                          >
-                            <Play className="w-4 h-4 fill-current" />
-                            Run Tests
-                          </button>
-                        </div>
-
-                        <AnimatePresence>
-                          {challengeFeedback && (
-                            <motion.div 
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              className={cn(
-                                "p-4 rounded-xl border flex items-start gap-3",
-                                challengeFeedback.success 
-                                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                                  : "bg-red-500/10 border-red-500/30 text-red-400"
-                              )}
-                            >
-                              {challengeFeedback.success ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
-                              <p className="text-sm font-medium">{challengeFeedback.message}</p>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center glass rounded-3xl border border-dashed border-white/10 p-12 text-center">
-                      <Code2 className="w-16 h-16 text-zinc-800 mb-4" />
-                      <h3 className="text-xl font-bold mb-2">Select a Challenge</h3>
-                      <p className="text-zinc-500 max-w-xs">Choose a problem from the list to start coding and testing your skills.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </motion.div>
           )}
 
@@ -835,7 +671,15 @@ export default function App() {
                                           >
                                             <div className="flex items-center gap-3 overflow-hidden">
                                               <button 
-                                                onClick={() => setProgress(progressService.toggleProblemCompletion(topic.id, prob.id))}
+                                                onClick={() => {
+                                                  const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
+                                                  setProgress(newProgress);
+                                                  // Check if this problem completion also completed the topic
+                                                  const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
+                                                  if (topicAfter?.completed && !topic.completed) {
+                                                    triggerConfetti();
+                                                  }
+                                                }}
                                                 className="shrink-0"
                                               >
                                                 {prob.completed ? (
@@ -972,10 +816,10 @@ export default function App() {
                     <button 
                       onClick={() => {
                         const mockHistory = [];
-                        const types: ('problem' | 'challenge' | 'topic')[] = ['problem', 'challenge', 'topic'];
+                        const types: ('problem' | 'topic')[] = ['problem', 'topic'];
                         for (let i = 0; i < 30; i++) {
                           const daysAgo = Math.floor(Math.random() * 10);
-                          const type = types[Math.floor(Math.random() * 3)];
+                          const type = types[Math.floor(Math.random() * 2)];
                           mockHistory.push({
                             id: Math.random().toString(36).substr(2, 9),
                             type,
@@ -1079,11 +923,9 @@ export default function App() {
                         <Pie
                           data={[
                             { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
-                            { name: 'Challenges', value: progress.completionHistory.filter(h => h.type === 'challenge').length },
                             { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
                           ].filter(d => d.value > 0).length > 0 ? [
                             { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
-                            { name: 'Challenges', value: progress.completionHistory.filter(h => h.type === 'challenge').length },
                             { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
                           ] : [
                             { name: 'No Data', value: 1 }
@@ -1108,7 +950,6 @@ export default function App() {
                     <div className="flex flex-col gap-4 pr-8">
                       {[
                         { label: 'Problems', color: 'bg-emerald-500', count: progress.completionHistory.filter(h => h.type === 'problem').length },
-                        { label: 'Challenges', color: 'bg-blue-500', count: progress.completionHistory.filter(h => h.type === 'challenge').length },
                         { label: 'Topics', color: 'bg-purple-500', count: progress.completionHistory.filter(h => h.type === 'topic').length },
                       ].map((item, i) => (
                         <div key={i} className="flex items-center gap-3">
@@ -1143,11 +984,9 @@ export default function App() {
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center",
                               entry.type === 'problem' ? "bg-emerald-500/10 text-emerald-500" :
-                              entry.type === 'challenge' ? "bg-blue-500/10 text-blue-500" :
                               "bg-purple-500/10 text-purple-500"
                             )}>
                               {entry.type === 'problem' ? <CheckCircle2 className="w-5 h-5" /> :
-                               entry.type === 'challenge' ? <Code2 className="w-5 h-5" /> :
                                <Trophy className="w-5 h-5" />}
                             </div>
                             <div>
@@ -1683,6 +1522,93 @@ export default function App() {
           @apply bg-white/10 px-1.5 py-0.5 rounded text-emerald-300 font-mono text-sm;
         }
       `}</style>
+
+      {/* Floating Chat Button */}
+      <button 
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-black rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center hover:scale-110 transition-all active:scale-95 z-[100]"
+      >
+        {isChatOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+      </button>
+
+      {/* Sidebar Chat */}
+      <AnimatePresence>
+        {isChatOpen && (
+          <motion.div 
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            className="fixed top-20 right-6 bottom-24 w-80 sm:w-96 glass rounded-3xl border border-white/10 shadow-2xl z-[90] flex flex-col overflow-hidden"
+          >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-sm">AI Tutor</span>
+              </div>
+              <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatMessages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                  <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <Terminal className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <h4 className="font-bold mb-2">How can I help you?</h4>
+                  <p className="text-xs text-zinc-500">Ask me anything about coding, your roadmap, or technical concepts.</p>
+                </div>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={cn(
+                  "flex flex-col",
+                  msg.role === 'user' ? "items-end" : "items-start"
+                )}>
+                  <div className={cn(
+                    "max-w-[85%] p-3 rounded-2xl text-sm",
+                    msg.role === 'user' 
+                      ? "bg-emerald-500 text-black rounded-tr-none" 
+                      : "bg-white/5 border border-white/10 rounded-tl-none"
+                  )}>
+                    <Markdown>{msg.parts[0].text}</Markdown>
+                  </div>
+                </div>
+              ))}
+              {isChatTyping && (
+                <div className="flex flex-col items-start">
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none">
+                    <div className="flex gap-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleChatSubmit} className="p-4 bg-white/5 border-t border-white/10">
+              <div className="relative">
+                <input 
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask something..."
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+                <button 
+                  type="submit"
+                  disabled={isChatTyping}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
