@@ -79,6 +79,7 @@ export default function App() {
   const [youtubeStreamKey, setYoutubeStreamKey] = useState('');
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [meetMessages, setMeetMessages] = useState<{ role: 'teacher' | 'student', text: string }[]>([]);
   const [meetInput, setMeetInput] = useState('');
   const [sidebarTab, setSidebarTab] = useState<'chat' | 'participants'>('chat');
@@ -110,26 +111,51 @@ export default function App() {
   }, [meetInput, isPresenting]);
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isMeetActive) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isMeetActive]);
+
+  useEffect(() => {
     if (isMeetActive) {
       if (isScreenSharing && screenStream) {
-        if (videoRef.current) videoRef.current.srcObject = screenStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = screenStream;
+        }
       } else if (isCamOn) {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then(stream => {
-            if (videoRef.current) videoRef.current.srcObject = stream;
-          })
-          .catch(err => console.error("Camera error:", err));
+        if (cameraStream) {
+          if (videoRef.current) videoRef.current.srcObject = cameraStream;
+        } else {
+          navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+              setCameraStream(stream);
+              if (videoRef.current) videoRef.current.srcObject = stream;
+            })
+            .catch(err => {
+              console.error("Camera error:", err);
+              setIsCamOn(false);
+            });
+        }
       } else {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(track => track.stop());
+          setCameraStream(null);
+        }
         if (videoRef.current?.srcObject) {
-          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
           videoRef.current.srcObject = null;
         }
       }
     } else {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
       if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
       if (screenStream) {
@@ -138,7 +164,7 @@ export default function App() {
         setIsScreenSharing(false);
       }
     }
-  }, [isMeetActive, isCamOn, isScreenSharing, screenStream]);
+  }, [isMeetActive, isCamOn, isScreenSharing, screenStream, cameraStream, activeTab]);
 
   const handleScreenShare = async () => {
     if (isScreenSharing) {
@@ -151,18 +177,27 @@ export default function App() {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: {
+          cursor: "always"
+        } as any,
+        audio: false 
+      });
+      
       setScreenStream(stream);
       setIsScreenSharing(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      
       stream.getVideoTracks()[0].onended = () => {
         setIsScreenSharing(false);
         setScreenStream(null);
       };
-    } catch (err) {
+    } catch (err: any) {
       console.error("Screen share error:", err);
+      setIsScreenSharing(false);
+      if (err.name === 'NotAllowedError') {
+        // User denied permission or cancelled
+        alert("Screen sharing permission was denied. Please allow access to share your screen.");
+      }
     }
   };
 
@@ -334,6 +369,9 @@ export default function App() {
             >
               <tab.icon className="w-4 h-4" />
               <span className="hidden sm:inline">{tab.label}</span>
+              {tab.id === 'meet' && isMeetActive && (
+                <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+              )}
               {activeTab === tab.id && (
                 <motion.div 
                   layoutId="nav-glow"
@@ -354,7 +392,7 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative">
         <AnimatePresence mode="wait">
           {activeTab === 'search' && (
             <motion.div 
@@ -1335,13 +1373,16 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'meet' && (
+          {/* Meet Tab - Persistent if active */}
+          {(activeTab === 'meet' || isMeetActive) && (
             <motion.div 
               key="meet"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="h-[calc(100vh-64px)] p-6 flex flex-col"
+              initial={activeTab === 'meet' ? { opacity: 0, scale: 0.95 } : false}
+              animate={activeTab === 'meet' ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95, pointerEvents: 'none' }}
+              className={cn(
+                "h-[calc(100vh-64px)] p-6 flex flex-col",
+                activeTab !== 'meet' && "hidden"
+              )}
             >
               {!isMeetActive ? (
                 <div className="flex-1 flex items-center justify-center">
@@ -1353,6 +1394,7 @@ export default function App() {
                     <h2 className="text-3xl font-black mb-4">Teaching Room</h2>
                     <p className="text-zinc-400 mb-8">
                       Practice teaching to AI students. They'll listen, ask questions, and respond based on your instructions.
+                      <br /><span className="text-[10px] text-emerald-500/60 mt-2 block">Tip: Use the monitor icon to share your screen and present your concepts.</span>
                     </p>
                     
                     <div className="text-left mb-8">
@@ -1421,20 +1463,31 @@ export default function App() {
                         </div>
                       </div>
 
-                      {isCamOn ? (
+                      {(isCamOn || isScreenSharing) ? (
                         <div className="absolute inset-0 flex items-center justify-center p-12 z-20">
-                          <div className="w-full max-w-2xl aspect-video relative rounded-2xl overflow-hidden border-4 border-zinc-800 shadow-2xl">
+                          <div className="w-full max-w-4xl aspect-video relative rounded-2xl overflow-hidden border-4 border-zinc-800 shadow-2xl bg-black">
                             <video 
                               ref={videoRef} 
                               autoPlay 
                               muted 
                               playsInline 
-                              className="w-full h-full object-cover mirror"
+                              className={cn(
+                                "w-full h-full",
+                                isScreenSharing ? "object-contain" : "object-cover mirror"
+                              )}
                             />
                             {/* Podium Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t-4 border-zinc-800 flex items-center justify-center">
-                              <div className="w-32 h-4 bg-emerald-500/20 rounded-full" />
-                            </div>
+                            {!isScreenSharing && (
+                              <div className="absolute bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t-4 border-zinc-800 flex items-center justify-center">
+                                <div className="w-32 h-4 bg-emerald-500/20 rounded-full" />
+                              </div>
+                            )}
+                            {isScreenSharing && (
+                              <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 shadow-lg">
+                                <Monitor className="w-3 h-3" />
+                                Sharing Screen
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -1707,6 +1760,27 @@ export default function App() {
                 )}
               </AnimatePresence>
             </motion.div>
+          )}
+        {/* Floating Back to Meeting Button */}
+        <AnimatePresence>
+          {isMeetActive && activeTab !== 'meet' && (
+            <motion.button
+              initial={{ opacity: 0, y: 50, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.8 }}
+              onClick={() => setActiveTab('meet')}
+              className="fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 bg-emerald-500 text-black rounded-2xl font-black shadow-2xl shadow-emerald-500/40 hover:bg-emerald-400 transition-all active:scale-95 group"
+            >
+              <div className="relative">
+                <Video className="w-6 h-6" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-emerald-500 rounded-full animate-pulse" />
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] uppercase tracking-widest opacity-70 leading-none mb-1">Live Session</div>
+                <div className="text-sm">Back to Meeting</div>
+              </div>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </motion.button>
           )}
         </AnimatePresence>
       </main>

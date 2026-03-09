@@ -3,6 +3,7 @@
   "description": "A global computer science learning platform with AI-powered search, progress tracking, and a simulated teaching environment.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "display-capture"
   ]
 }
