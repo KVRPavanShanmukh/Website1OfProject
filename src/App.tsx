@@ -38,7 +38,11 @@ import {
   PieChart as PieChartIcon,
   Info,
   Briefcase,
-  Github
+  Github,
+  Monitor,
+  Youtube,
+  Settings,
+  Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -62,7 +66,6 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ text: string; sources: any[] } | null>(null);
   const [progress, setProgress] = useState<Progress>(progressService.getProgress());
-  const [newTopicTitle, setNewTopicTitle] = useState('');
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
   const [userNameInput, setUserNameInput] = useState(progress.userName);
@@ -71,6 +74,11 @@ export default function App() {
   const [isMeetActive, setIsMeetActive] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isYoutubeStreaming, setIsYoutubeStreaming] = useState(false);
+  const [youtubeStreamKey, setYoutubeStreamKey] = useState('');
+  const [showYoutubeModal, setShowYoutubeModal] = useState(false);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [meetMessages, setMeetMessages] = useState<{ role: 'teacher' | 'student', text: string }[]>([]);
   const [meetInput, setMeetInput] = useState('');
   const [sidebarTab, setSidebarTab] = useState<'chat' | 'participants'>('chat');
@@ -102,20 +110,75 @@ export default function App() {
   }, [meetInput, isPresenting]);
 
   useEffect(() => {
-    if (isMeetActive && isCamOn) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          if (videoRef.current) videoRef.current.srcObject = stream;
-        })
-        .catch(err => console.error("Camera error:", err));
+    if (isMeetActive) {
+      if (isScreenSharing && screenStream) {
+        if (videoRef.current) videoRef.current.srcObject = screenStream;
+      } else if (isCamOn) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+          .then(stream => {
+            if (videoRef.current) videoRef.current.srcObject = stream;
+          })
+          .catch(err => console.error("Camera error:", err));
+      } else {
+        if (videoRef.current?.srcObject) {
+          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
+          videoRef.current.srcObject = null;
+        }
+      }
     } else {
       if (videoRef.current?.srcObject) {
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
         tracks.forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+        setIsScreenSharing(false);
+      }
     }
-  }, [isMeetActive, isCamOn]);
+  }, [isMeetActive, isCamOn, isScreenSharing, screenStream]);
+
+  const handleScreenShare = async () => {
+    if (isScreenSharing) {
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
+      setIsScreenSharing(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      setScreenStream(stream);
+      setIsScreenSharing(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      stream.getVideoTracks()[0].onended = () => {
+        setIsScreenSharing(false);
+        setScreenStream(null);
+      };
+    } catch (err) {
+      console.error("Screen share error:", err);
+    }
+  };
+
+  const handleYoutubeStream = () => {
+    if (isYoutubeStreaming) {
+      setIsYoutubeStreaming(false);
+      return;
+    }
+    setShowYoutubeModal(true);
+  };
+
+  const startYoutubeStream = () => {
+    if (!youtubeStreamKey.trim()) return;
+    setIsYoutubeStreaming(true);
+    setShowYoutubeModal(false);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,29 +211,6 @@ export default function App() {
       console.error("Student response failed:", error);
     } finally {
       setIsStudentTyping(false);
-    }
-  };
-
-  const handleAddCustomTopic = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTopicTitle.trim() || isAddingTopic) return;
-    
-    setIsAddingTopic(true);
-    try {
-      const challenges = await fetchChallengesForTopic(newTopicTitle);
-      const updatedProgress = progressService.addCustomTopic(newTopicTitle, challenges);
-      setProgress(updatedProgress);
-      setNewTopicTitle('');
-      // Automatically expand the new topic
-      const newTopic = updatedProgress.customTopics[updatedProgress.customTopics.length - 1];
-      if (newTopic) setExpandedTopics(prev => [...prev, newTopic.id]);
-    } catch (error) {
-      console.error("Failed to fetch challenges for topic:", error);
-      // Fallback: add without challenges if AI fails
-      setProgress(progressService.addCustomTopic(newTopicTitle));
-      setNewTopicTitle('');
-    } finally {
-      setIsAddingTopic(false);
     }
   };
 
@@ -480,17 +520,17 @@ export default function App() {
                     />
                   </div>
 
-                  <form onSubmit={handleAddCustomTopic} className="flex gap-2">
+                  <form onSubmit={handleSearch} className="flex gap-2">
                     <div className="flex-1 relative">
                       <input 
                         type="text"
-                        value={newTopicTitle}
-                        onChange={(e) => setNewTopicTitle(e.target.value)}
-                        placeholder="Add a topic (e.g., DP, LeetCode, Graphs)..."
-                        disabled={isAddingTopic}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search & add topics (e.g., DP, LeetCode, Graphs)..."
+                        disabled={isSearching}
                         className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50"
                       />
-                      {isAddingTopic && (
+                      {isSearching && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
                         </div>
@@ -498,10 +538,10 @@ export default function App() {
                     </div>
                     <button 
                       type="submit"
-                      disabled={isAddingTopic}
+                      disabled={isSearching}
                       className="p-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Search className="w-5 h-5" />
                     </button>
                   </form>
                 </div>
@@ -542,7 +582,37 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-8">
+                {searchResults && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass rounded-3xl p-8 relative overflow-hidden border border-emerald-500/20"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <Globe className="w-5 h-5" />
+                        <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
+                      </div>
+                      <button
+                        onClick={handleAddSearchTopicToRoadmap}
+                        disabled={isAddingTopic}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black rounded-xl text-xs font-bold hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {isAddingTopic ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                        Add to Roadmap
+                      </button>
+                    </div>
+                    <div className="prose prose-invert max-w-none relative z-10 text-sm">
+                      <Markdown>{searchResults.text}</Markdown>
+                    </div>
+                  </motion.div>
+                )}
+
                 {progress.customTopics.length === 0 ? (
                   <div className="p-12 text-center glass rounded-3xl border-dashed border-2 border-white/10">
                     <BookOpen className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
@@ -551,12 +621,8 @@ export default function App() {
                 ) : (
                   progress.customTopics.map((topic, i) => {
                     const isExpanded = expandedTopics.includes(topic.id);
-                    // Group problems by platform
-                    const groupedProblems = topic.problems.reduce((acc: any, prob) => {
-                      if (!acc[prob.platform]) acc[prob.platform] = [];
-                      acc[prob.platform].push(prob);
-                      return acc;
-                    }, {});
+                    const interviewQuestions = topic.problems.filter(p => !p.category || p.category === 'interview');
+                    const relatedProblems = topic.problems.filter(p => p.category === 'related');
 
                     return (
                       <motion.div 
@@ -598,7 +664,7 @@ export default function App() {
                                   </h3>
                                   <div className="flex items-center gap-3 mt-1">
                                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                                      {topic.problems.length} Interview Questions • {topic.problems.filter(p => p.completed).length} Done
+                                      {topic.problems.length} Problems • {topic.problems.filter(p => p.completed).length} Done
                                     </p>
                                     {!topic.completed && topic.problems.length > 0 && (
                                       <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
@@ -642,74 +708,127 @@ export default function App() {
                               exit={{ height: 0, opacity: 0 }}
                               className="border-t border-white/5 bg-black/20"
                             >
-                              <div className="p-6 space-y-6">
-                                {Object.entries(groupedProblems).length > 0 ?
+                              <div className="p-6 space-y-8">
+                                {topic.problems.length > 0 ?
                                   <>
-                                    <div className="flex items-center justify-between mb-4">
-                                      <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
-                                        <Trophy className="w-3 h-3" />
-                                        Top 10 Interview Questions
-                                      </h4>
-                                    </div>
-                                    {Object.entries(groupedProblems).map(([platform, probs]: [string, any]) => (
-                                    <div key={platform} className="space-y-3">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-px flex-1 bg-white/5" />
-                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 py-1 bg-white/5 rounded border border-white/5">
-                                          {platform}
-                                        </span>
-                                        <div className="h-px flex-1 bg-white/5" />
-                                      </div>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {probs.map((prob: any) => (
-                                          <div 
-                                            key={prob.id}
-                                            className={cn(
-                                              "flex items-center justify-between p-3 rounded-xl border transition-all",
-                                              prob.completed ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
-                                            )}
-                                          >
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                              <button 
-                                                onClick={() => {
-                                                  const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
-                                                  setProgress(newProgress);
-                                                  // Check if this problem completion also completed the topic
-                                                  const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
-                                                  if (topicAfter?.completed && !topic.completed) {
-                                                    triggerConfetti();
-                                                  }
-                                                }}
-                                                className="shrink-0"
-                                              >
-                                                {prob.completed ? (
-                                                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                                ) : (
-                                                  <Circle className="w-5 h-5 text-zinc-700" />
-                                                )}
-                                              </button>
-                                              <span className={cn(
-                                                "text-sm font-medium truncate",
-                                                prob.completed ? "text-zinc-500 line-through" : "text-zinc-300"
-                                              )}>
-                                                {prob.title}
-                                              </span>
-                                            </div>
-                                            <a 
-                                              href={prob.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="p-2 text-zinc-600 hover:text-emerald-400 transition-colors shrink-0"
+                                    {/* Top 10 Interview Questions */}
+                                    {interviewQuestions.length > 0 && (
+                                      <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                                          <Trophy className="w-3 h-3" />
+                                          Top 10 Interview Questions
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          {interviewQuestions.map((prob: any) => (
+                                            <div 
+                                              key={prob.id}
+                                              className={cn(
+                                                "flex items-center justify-between p-3 rounded-xl border transition-all",
+                                                prob.completed ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
+                                              )}
                                             >
-                                              <ExternalLink className="w-4 h-4" />
-                                            </a>
-                                          </div>
-                                        ))}
+                                              <div className="flex items-center gap-3 overflow-hidden">
+                                                <button 
+                                                  onClick={() => {
+                                                    const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
+                                                    setProgress(newProgress);
+                                                    const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
+                                                    if (topicAfter?.completed && !topic.completed) {
+                                                      triggerConfetti();
+                                                    }
+                                                  }}
+                                                  className="shrink-0"
+                                                >
+                                                  {prob.completed ? (
+                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                  ) : (
+                                                    <Circle className="w-5 h-5 text-zinc-700" />
+                                                  )}
+                                                </button>
+                                                <div className="flex flex-col overflow-hidden">
+                                                  <span className={cn(
+                                                    "text-sm font-medium truncate",
+                                                    prob.completed ? "text-zinc-500 line-through" : "text-zinc-300"
+                                                  )}>
+                                                    {prob.title}
+                                                  </span>
+                                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">{prob.platform}</span>
+                                                </div>
+                                              </div>
+                                              <a 
+                                                href={prob.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 text-zinc-600 hover:text-emerald-400 transition-colors shrink-0"
+                                              >
+                                                <ExternalLink className="w-4 h-4" />
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </>
-                                : (
+                                    )}
+
+                                    {/* All Related Problems */}
+                                    {relatedProblems.length > 0 && (
+                                      <div className="space-y-4">
+                                        <div className="h-px bg-white/5 w-full" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                                          <Globe className="w-3 h-3" />
+                                          All Related Problems
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          {relatedProblems.map((prob: any) => (
+                                            <div 
+                                              key={prob.id}
+                                              className={cn(
+                                                "flex items-center justify-between p-3 rounded-xl border transition-all",
+                                                prob.completed ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
+                                              )}
+                                            >
+                                              <div className="flex items-center gap-3 overflow-hidden">
+                                                <button 
+                                                  onClick={() => {
+                                                    const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
+                                                    setProgress(newProgress);
+                                                    const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
+                                                    if (topicAfter?.completed && !topic.completed) {
+                                                      triggerConfetti();
+                                                    }
+                                                  }}
+                                                  className="shrink-0"
+                                                >
+                                                  {prob.completed ? (
+                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                  ) : (
+                                                    <Circle className="w-5 h-5 text-zinc-700" />
+                                                  )}
+                                                </button>
+                                                <div className="flex flex-col overflow-hidden">
+                                                  <span className={cn(
+                                                    "text-sm font-medium truncate",
+                                                    prob.completed ? "text-zinc-500 line-through" : "text-zinc-300"
+                                                  )}>
+                                                    {prob.title}
+                                                  </span>
+                                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">{prob.platform}</span>
+                                                </div>
+                                              </div>
+                                              <a 
+                                                href={prob.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 text-zinc-600 hover:text-emerald-400 transition-colors shrink-0"
+                                              >
+                                                <ExternalLink className="w-4 h-4" />
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                  : (
                                   <div className="text-center py-4">
                                     <p className="text-xs text-zinc-500">No specific challenges found for this topic.</p>
                                   </div>
@@ -752,18 +871,20 @@ export default function App() {
                     <div 
                       ref={certificateRef}
                       style={{ backgroundColor: '#0a0a0a', borderColor: '#10b981' }}
-                      className="w-[1000px] h-[700px] border-[20px] p-20 flex flex-col items-center justify-between text-white font-sans relative"
+                      className="w-[1000px] h-[700px] border-[20px] pt-20 px-20 pb-28 flex flex-col items-center justify-between text-white font-sans relative"
                     >
                       <div className="absolute inset-0 opacity-5 pointer-events-none">
                         <div style={{ background: 'radial-gradient(circle at center, #10b981, transparent, transparent)' }} className="w-full h-full" />
                       </div>
                       
-                      <div className="text-center">
+                      <div className="text-center w-full">
                         <div style={{ backgroundColor: '#10b981' }} className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8">
                           <Terminal style={{ color: '#000000' }} className="w-12 h-12" />
                         </div>
-                        <h1 className="text-6xl font-black tracking-tighter mb-4">CERTIFICATE OF EXCELLENCE</h1>
-                        <div style={{ backgroundColor: '#10b981' }} className="h-1 w-48 mx-auto mb-8" />
+                        <h1 className="text-6xl font-black tracking-tighter mb-4 w-full text-center">CERTIFICATE OF EXCELLENCE</h1>
+                        <div className="flex justify-center w-full mb-8">
+                          <div style={{ backgroundColor: '#10b981' }} className="h-1 w-64" />
+                        </div>
                         <p style={{ color: '#a1a1aa' }} className="text-xl uppercase tracking-[0.3em] font-bold">This is to certify that</p>
                       </div>
 
@@ -774,12 +895,12 @@ export default function App() {
                         </p>
                       </div>
 
-                      <div className="w-full flex justify-between items-end">
+                      <div className="w-full flex justify-between items-end px-4">
                         <div className="text-left">
                           <div style={{ backgroundColor: '#3f3f46' }} className="h-px w-48 mb-4" />
                           <p style={{ color: '#71717a' }} className="text-sm font-bold uppercase tracking-widest">Date: {new Date().toLocaleDateString()}</p>
                         </div>
-                        <div className="text-center">
+                        <div className="text-center mb-[-10px]">
                           <Award style={{ color: '#10b981' }} className="w-20 h-20 mb-2" />
                           <p style={{ color: '#10b981' }} className="text-xs font-bold uppercase tracking-widest">Official Seal</p>
                         </div>
@@ -1341,6 +1462,7 @@ export default function App() {
                             "p-3 rounded-full transition-all",
                             isMicOn ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"
                           )}
+                          title={isMicOn ? "Mute" : "Unmute"}
                         >
                           {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </button>
@@ -1350,8 +1472,29 @@ export default function App() {
                             "p-3 rounded-full transition-all",
                             isCamOn ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"
                           )}
+                          title={isCamOn ? "Turn Off Camera" : "Turn On Camera"}
                         >
                           {isCamOn ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={handleScreenShare}
+                          className={cn(
+                            "p-3 rounded-full transition-all",
+                            isScreenSharing ? "bg-emerald-500 text-black" : "bg-white/10 hover:bg-white/20"
+                          )}
+                          title="Share Screen"
+                        >
+                          <Monitor className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={handleYoutubeStream}
+                          className={cn(
+                            "p-3 rounded-full transition-all",
+                            isYoutubeStreaming ? "bg-red-500 text-white animate-pulse" : "bg-white/10 hover:bg-white/20"
+                          )}
+                          title="YouTube Live"
+                        >
+                          <Youtube className="w-5 h-5" />
                         </button>
                         <div className="w-px h-6 bg-white/10" />
                         <button 
@@ -1497,6 +1640,72 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* YouTube Streaming Modal */}
+              <AnimatePresence>
+                {showYoutubeModal && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setShowYoutubeModal(false)}
+                      className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                      className="relative w-full max-w-md glass rounded-3xl p-8 border border-white/10 shadow-2xl"
+                    >
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center">
+                          <Youtube className="w-6 h-6 text-red-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black">YouTube Live</h3>
+                          <p className="text-xs text-zinc-500">Stream your session directly to YouTube</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div>
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Stream Key</label>
+                          <div className="relative">
+                            <input 
+                              type="password"
+                              value={youtubeStreamKey}
+                              onChange={(e) => setYoutubeStreamKey(e.target.value)}
+                              placeholder="Paste your YouTube stream key here..."
+                              className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                            />
+                            <Settings className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+                            Find your stream key in the <a href="https://studio.youtube.com" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">YouTube Studio</a>. Similar to OBS setup.
+                          </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => setShowYoutubeModal(false)}
+                            className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={startYoutubeStream}
+                            disabled={!youtubeStreamKey.trim()}
+                            className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-all disabled:opacity-50 active:scale-95"
+                          >
+                            Go Live
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>

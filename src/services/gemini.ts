@@ -13,30 +13,54 @@ export async function getGeneralizedTopicName(query: string): Promise<string> {
 export async function fetchChallengesForTopic(topic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Find the Top 10 most frequently asked interview questions/coding challenges for the topic: "${topic}".
-    Focus on problems that are commonly asked in technical interviews at top companies.
+    contents: `Find coding challenges and interview questions for the topic: "${topic}".
+    Organize them into two categories:
+    1. "Top 10 Interview Questions": The most frequently asked and essential interview questions for this topic.
+    2. "All Related Problems": A comprehensive list of other relevant problems from across the web.
+    
     Include problems from platforms like LeetCode, CodeChef, HackerRank, GeeksforGeeks, etc.
     Provide direct URLs to the challenges and ensure they are freely accessible.`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            url: { type: Type.STRING },
-            platform: { type: Type.STRING }
+        type: Type.OBJECT,
+        properties: {
+          interviewQuestions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                url: { type: Type.STRING },
+                platform: { type: Type.STRING }
+              },
+              required: ["title", "url", "platform"]
+            }
           },
-          required: ["title", "url", "platform"]
-        }
+          relatedProblems: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                url: { type: Type.STRING },
+                platform: { type: Type.STRING }
+              },
+              required: ["title", "url", "platform"]
+            }
+          }
+        },
+        required: ["interviewQuestions", "relatedProblems"]
       }
     },
   });
 
   try {
-    return JSON.parse(response.text || "[]");
+    const data = JSON.parse(response.text || "{}");
+    const interview = (data.interviewQuestions || []).map((p: any) => ({ ...p, category: 'interview' }));
+    const related = (data.relatedProblems || []).map((p: any) => ({ ...p, category: 'related' }));
+    return [...interview, ...related];
   } catch (e) {
     console.error("Failed to parse challenges:", e);
     return [];
