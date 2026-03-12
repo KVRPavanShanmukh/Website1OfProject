@@ -659,7 +659,8 @@ export default function App() {
                 ) : (
                   progress.customTopics.map((topic, i) => {
                     const isExpanded = expandedTopics.includes(topic.id);
-                    const interviewQuestions = topic.problems.filter(p => !p.category || p.category === 'interview');
+                    const bestResource = topic.problems.find(p => p.category === 'best');
+                    const interviewQuestions = topic.problems.filter(p => p.category === 'interview');
                     const relatedProblems = topic.problems.filter(p => p.category === 'related');
 
                     return (
@@ -749,12 +750,48 @@ export default function App() {
                               <div className="p-6 space-y-8">
                                 {topic.problems.length > 0 ?
                                   <>
-                                    {/* Top 10 Interview Questions */}
+                                    {/* Best Resource */}
+                                    {bestResource && (
+                                      <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-yellow-500 flex items-center gap-2">
+                                          <Star className="w-3 h-3 fill-current" />
+                                          Best Recommended Resource
+                                        </h4>
+                                        <div className="p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/20 relative overflow-hidden group">
+                                          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <Trophy className="w-16 h-16 text-yellow-500" />
+                                          </div>
+                                          <div className="relative z-10">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <h5 className="font-bold text-lg text-yellow-500">{bestResource.title}</h5>
+                                              <a 
+                                                href={bestResource.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition-all active:scale-95"
+                                              >
+                                                <ExternalLink className="w-4 h-4" />
+                                              </a>
+                                            </div>
+                                            <p className="text-sm text-zinc-400 mb-3">
+                                              {bestResource.reason || "This is the top-rated resource for mastering this topic."}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">
+                                                {bestResource.platform}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Top 20 Interview Questions */}
                                     {interviewQuestions.length > 0 && (
                                       <div className="space-y-4">
                                         <h4 className="text-xs font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
                                           <Trophy className="w-3 h-3" />
-                                          Top 10 Interview Questions
+                                          Top 20 Interview Questions
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                           {interviewQuestions.map((prob: any) => (
@@ -807,13 +844,13 @@ export default function App() {
                                       </div>
                                     )}
 
-                                    {/* All Related Problems */}
+                                    {/* Comprehensive Problem List */}
                                     {relatedProblems.length > 0 && (
                                       <div className="space-y-4">
                                         <div className="h-px bg-white/5 w-full" />
                                         <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
                                           <Globe className="w-3 h-3" />
-                                          All Related Problems
+                                          Comprehensive Problem List
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                           {relatedProblems.map((prob: any) => (

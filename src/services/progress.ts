@@ -5,7 +5,8 @@ export interface Problem {
   platform: string;
   completed: boolean;
   completedAt?: number;
-  category?: 'interview' | 'related';
+  category?: 'interview' | 'related' | 'best';
+  reason?: string;
 }
 
 export interface CustomTopic {
@@ -75,6 +76,7 @@ export const progressService = {
         url: prob.url,
         platform: prob.platform,
         category: prob.category,
+        reason: prob.reason,
         completed: false
       }))
     };

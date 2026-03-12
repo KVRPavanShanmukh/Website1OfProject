@@ -13,19 +13,31 @@ export async function getGeneralizedTopicName(query: string): Promise<string> {
 export async function fetchChallengesForTopic(topic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Find coding challenges and interview questions for the topic: "${topic}".
-    Organize them into two categories:
-    1. "Top 10 Interview Questions": The most frequently asked and essential interview questions for this topic.
-    2. "All Related Problems": A comprehensive list of other relevant problems from across the web.
+    contents: `Find ALL possible coding challenges, practice problems, and interview questions for the topic: "${topic}".
+    Search across all major platforms like LeetCode, Codeforces, CodeChef, HackerRank, GeeksforGeeks, InterviewBit, TopCoder, etc.
     
-    Include problems from platforms like LeetCode, CodeChef, HackerRank, GeeksforGeeks, etc.
-    Provide direct URLs to the challenges and ensure they are freely accessible.`,
+    Organize them into:
+    1. "Best Resource": The single most recommended resource or problem set for this topic.
+    2. "Top 20 Interview Questions": The most essential questions.
+    3. "Comprehensive Problem List": As many other relevant problems as possible from various websites.
+    
+    Provide direct URLs and ensure they are high quality.`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          bestResource: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              url: { type: Type.STRING },
+              platform: { type: Type.STRING },
+              reason: { type: Type.STRING, description: "Why this is the best resource" }
+            },
+            required: ["title", "url", "platform", "reason"]
+          },
           interviewQuestions: {
             type: Type.ARRAY,
             items: {
@@ -51,16 +63,17 @@ export async function fetchChallengesForTopic(topic: string) {
             }
           }
         },
-        required: ["interviewQuestions", "relatedProblems"]
+        required: ["bestResource", "interviewQuestions", "relatedProblems"]
       }
     },
   });
 
   try {
     const data = JSON.parse(response.text || "{}");
+    const best = data.bestResource ? [{ ...data.bestResource, category: 'best' }] : [];
     const interview = (data.interviewQuestions || []).map((p: any) => ({ ...p, category: 'interview' }));
     const related = (data.relatedProblems || []).map((p: any) => ({ ...p, category: 'related' }));
-    return [...interview, ...related];
+    return [...best, ...interview, ...related];
   } catch (e) {
     console.error("Failed to parse challenges:", e);
     return [];
@@ -70,9 +83,13 @@ export async function fetchChallengesForTopic(topic: string) {
 export async function searchCSConcept(concept: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Find the most efficient and best global resources (YouTube channels, articles, documentation, interactive courses) for the computer science concept: "${concept}". 
-    Ignore the user's location and focus on the highest quality content worldwide (e.g., if a Canadian YouTuber has the best explanation, include it even for an Indian user).
-    Provide a structured list with titles, descriptions, and URLs.`,
+    contents: `Find ALL possible high-quality resources for the computer science concept: "${concept}". 
+    Search across all websites globally (YouTube, Medium, Dev.to, Official Docs, Coursera, edX, etc.).
+    
+    CRITICAL: Identify the single BEST resource first and explain why. 
+    Then provide a comprehensive list of all other valuable resources.
+    
+    Include titles, descriptions, and direct URLs.`,
     config: {
       tools: [{ googleSearch: {} }],
     },
