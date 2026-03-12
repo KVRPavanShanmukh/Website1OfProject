@@ -340,10 +340,10 @@ export default function App() {
       {/* Navigation */}
       <nav className="h-16 border-b border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Terminal className="text-black w-5 h-5" />
           </div>
-          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
             Shanmukh AI VidyaPeettham
           </span>
         </div>
@@ -363,7 +363,7 @@ export default function App() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all relative overflow-hidden group",
                 activeTab === tab.id 
-                  ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" 
+                  ? "bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               )}
             >
@@ -385,9 +385,9 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+          <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
             <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
-            <span className="text-xs font-mono text-emerald-400 font-bold">{masteredCount} Mastered</span>
+            <span className="text-xs font-mono text-blue-400 font-bold">{masteredCount} Mastered</span>
           </div>
         </div>
       </nav>
@@ -406,13 +406,13 @@ export default function App() {
                 <motion.div 
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-6"
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6"
                 >
                   <Zap className="w-3 h-3 fill-current" />
                   AI-Powered Global Learning
                 </motion.div>
                 <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight">
-                  Master Any <span className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">CS Concept</span>
+                  Master Any <span className="text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">CS Concept</span>
                 </h1>
                 <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
                   Fetch the best resources from across the globe. 
@@ -421,19 +421,19 @@ export default function App() {
               </div>
 
               <form onSubmit={handleSearch} className="relative mb-12 group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 <div className="relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Enter a concept (e.g., Dynamic Programming, Kubernetes, Rust Ownership...)"
-                    className="w-full h-16 bg-zinc-900 border border-white/10 rounded-2xl px-6 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
+                    className="w-full h-16 bg-zinc-900 border border-white/10 rounded-2xl px-6 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
                   />
                   <button 
                     type="submit"
                     disabled={isSearching}
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-emerald-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-blue-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
                   >
                     {isSearching ? (
                       <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -455,17 +455,17 @@ export default function App() {
                     className="glass rounded-3xl p-8 relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-10">
-                      <Globe className="w-32 h-32 text-emerald-500" />
+                      <Globe className="w-32 h-32 text-blue-500" />
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2 text-emerald-400">
+                      <div className="flex items-center gap-2 text-blue-400">
                         <Globe className="w-5 h-5" />
                         <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
                       </div>
                       <button
                         onClick={handleAddSearchTopicToRoadmap}
                         disabled={isAddingTopic}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-black transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-black transition-all active:scale-95 disabled:opacity-50"
                       >
                         {isAddingTopic ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -491,13 +491,13 @@ export default function App() {
                           href={source.uri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group p-4 glass rounded-2xl hover:bg-white/10 transition-all border border-white/5 hover:border-emerald-500/30"
+                          className="group p-4 glass rounded-2xl hover:bg-white/10 transition-all border border-white/5 hover:border-blue-500/30"
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-bold text-emerald-400 group-hover:underline truncate flex-1">
+                            <h3 className="font-bold text-blue-400 group-hover:underline truncate flex-1">
                               {source.title}
                             </h3>
-                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-emerald-400" />
+                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400" />
                           </div>
                           <p className="text-xs text-zinc-500 line-clamp-2">{source.uri}</p>
                         </motion.a>
@@ -518,7 +518,7 @@ export default function App() {
                       <button 
                         key={i}
                         onClick={() => { setSearchQuery(s); }}
-                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 hover:border-emerald-500/30 transition-all"
+                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 hover:border-blue-500/30 transition-all"
                       >
                         {s}
                       </button>
@@ -545,7 +545,7 @@ export default function App() {
                       <p className="text-zinc-400 text-sm">Track your progress and earn your certificate.</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-5xl font-black text-emerald-400">{currentProgress}%</div>
+                      <div className="text-5xl font-black text-blue-400">{currentProgress}%</div>
                       <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Complete</div>
                     </div>
                   </div>
@@ -554,7 +554,7 @@ export default function App() {
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${currentProgress}%` }}
-                      className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                     />
                   </div>
 
@@ -566,27 +566,27 @@ export default function App() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search & add topics (e.g., DP, LeetCode, Graphs)..."
                         disabled={isSearching}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50"
                       />
                       {isSearching && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
+                          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
                         </div>
                       )}
                     </div>
                     <button 
                       type="submit"
                       disabled={isSearching}
-                      className="p-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
+                      className="p-3 bg-blue-500 text-black rounded-xl hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Search className="w-5 h-5" />
                     </button>
                   </form>
                 </div>
 
-                <div className="glass rounded-3xl p-8 flex flex-col justify-between border-emerald-500/20">
+                <div className="glass rounded-3xl p-8 flex flex-col justify-between border-blue-500/20">
                   <div>
-                    <div className="flex items-center gap-2 text-emerald-400 mb-4">
+                    <div className="flex items-center gap-2 text-blue-400 mb-4">
                       <User className="w-4 h-4" />
                       <span className="text-xs font-bold uppercase tracking-widest">Profile</span>
                     </div>
@@ -598,7 +598,7 @@ export default function App() {
                           value={userNameInput}
                           onChange={(e) => setUserNameInput(e.target.value)}
                           placeholder="Enter your name..."
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                       </div>
                       <button 
@@ -625,17 +625,17 @@ export default function App() {
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass rounded-3xl p-8 relative overflow-hidden border border-emerald-500/20"
+                    className="glass rounded-3xl p-8 relative overflow-hidden border border-blue-500/20"
                   >
                     <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2 text-emerald-400">
+                      <div className="flex items-center gap-2 text-blue-400">
                         <Globe className="w-5 h-5" />
                         <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
                       </div>
                       <button
                         onClick={handleAddSearchTopicToRoadmap}
                         disabled={isAddingTopic}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black rounded-xl text-xs font-bold hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
                       >
                         {isAddingTopic ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -669,7 +669,7 @@ export default function App() {
                         animate={{ opacity: 1, y: 0 }}
                         className={cn(
                           "glass rounded-2xl border transition-all overflow-hidden",
-                          topic.completed ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/5"
+                          topic.completed ? "border-blue-500/30 bg-blue-500/5" : "border-white/5"
                         )}
                       >
                         <div className="flex items-center justify-between p-6 group">
@@ -679,7 +679,7 @@ export default function App() {
                               className="transition-transform active:scale-90"
                             >
                               {topic.completed ? (
-                                <CheckCircle2 className="w-8 h-8 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                <CheckCircle2 className="w-8 h-8 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                               ) : (
                                 <Circle className="w-8 h-8 text-zinc-700 hover:text-zinc-500" />
                               )}
@@ -689,14 +689,14 @@ export default function App() {
                               className="flex items-center gap-3 text-left"
                             >
                               {isExpanded ? (
-                                <FolderOpen className="w-5 h-5 text-emerald-400" />
+                                <FolderOpen className="w-5 h-5 text-blue-400" />
                               ) : (
                                 <Folder className="w-5 h-5 text-zinc-500" />
                               )}
                                 <div>
                                   <h3 className={cn(
                                     "text-lg font-bold transition-all",
-                                    topic.completed ? "text-emerald-400" : "text-white"
+                                    topic.completed ? "text-blue-400" : "text-white"
                                   )}>
                                     {topic.title}
                                   </h3>
@@ -707,13 +707,13 @@ export default function App() {
                                     {!topic.completed && topic.problems.length > 0 && (
                                       <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
                                         <div 
-                                          className="h-full bg-emerald-500 transition-all duration-500"
+                                          className="h-full bg-blue-500 transition-all duration-500"
                                           style={{ width: `${(topic.problems.filter(p => p.completed).length / topic.problems.length) * 100}%` }}
                                         />
                                       </div>
                                     )}
                                     {topic.completed && (
-                                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">Mastered</span>
+                                      <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">Mastered</span>
                                     )}
                                   </div>
                                 </div>
@@ -752,7 +752,7 @@ export default function App() {
                                     {/* Top 10 Interview Questions */}
                                     {interviewQuestions.length > 0 && (
                                       <div className="space-y-4">
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
                                           <Trophy className="w-3 h-3" />
                                           Top 10 Interview Questions
                                         </h4>
@@ -762,7 +762,7 @@ export default function App() {
                                               key={prob.id}
                                               className={cn(
                                                 "flex items-center justify-between p-3 rounded-xl border transition-all",
-                                                prob.completed ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
+                                                prob.completed ? "bg-blue-500/10 border-blue-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
                                               )}
                                             >
                                               <div className="flex items-center gap-3 overflow-hidden">
@@ -778,7 +778,7 @@ export default function App() {
                                                   className="shrink-0"
                                                 >
                                                   {prob.completed ? (
-                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                    <CheckCircle2 className="w-5 h-5 text-blue-500" />
                                                   ) : (
                                                     <Circle className="w-5 h-5 text-zinc-700" />
                                                   )}
@@ -797,7 +797,7 @@ export default function App() {
                                                 href={prob.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="p-2 text-zinc-600 hover:text-emerald-400 transition-colors shrink-0"
+                                                className="p-2 text-zinc-600 hover:text-blue-400 transition-colors shrink-0"
                                               >
                                                 <ExternalLink className="w-4 h-4" />
                                               </a>
@@ -821,7 +821,7 @@ export default function App() {
                                               key={prob.id}
                                               className={cn(
                                                 "flex items-center justify-between p-3 rounded-xl border transition-all",
-                                                prob.completed ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
+                                                prob.completed ? "bg-blue-500/10 border-blue-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
                                               )}
                                             >
                                               <div className="flex items-center gap-3 overflow-hidden">
@@ -837,7 +837,7 @@ export default function App() {
                                                   className="shrink-0"
                                                 >
                                                   {prob.completed ? (
-                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                    <CheckCircle2 className="w-5 h-5 text-blue-500" />
                                                   ) : (
                                                     <Circle className="w-5 h-5 text-zinc-700" />
                                                   )}
@@ -856,7 +856,7 @@ export default function App() {
                                                 href={prob.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="p-2 text-zinc-600 hover:text-emerald-400 transition-colors shrink-0"
+                                                className="p-2 text-zinc-600 hover:text-blue-400 transition-colors shrink-0"
                                               >
                                                 <ExternalLink className="w-4 h-4" />
                                               </a>
@@ -885,12 +885,12 @@ export default function App() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mt-12 p-8 glass rounded-3xl border-emerald-500/50 bg-emerald-500/5 text-center relative overflow-hidden"
+                  className="mt-12 p-8 glass rounded-3xl border-blue-500/50 bg-blue-500/5 text-center relative overflow-hidden"
                 >
-                  <div className="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl" />
-                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl" />
+                  <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
                   
-                  <Award className="w-16 h-16 text-emerald-400 mx-auto mb-4 animate-pulse" />
+                  <Award className="w-16 h-16 text-blue-400 mx-auto mb-4 animate-pulse" />
                   <h2 className="text-3xl font-black mb-2">Congratulations, {progress.userName || 'Scholar'}!</h2>
                   <p className="text-zinc-400 mb-8 max-w-md mx-auto">
                     You have successfully completed your custom roadmap. You are now officially a Master of your selected CS concepts.
@@ -898,7 +898,7 @@ export default function App() {
                   
                   <button 
                     onClick={downloadCertificate}
-                    className="px-8 py-4 bg-emerald-500 text-black rounded-2xl font-bold flex items-center gap-2 mx-auto hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/30 active:scale-95"
+                    className="px-8 py-4 bg-blue-500 text-black rounded-2xl font-bold flex items-center gap-2 mx-auto hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/30 active:scale-95"
                   >
                     <Download className="w-5 h-5" />
                     Download Certificate
@@ -908,26 +908,26 @@ export default function App() {
                   <div className="fixed left-[-9999px] top-0">
                     <div 
                       ref={certificateRef}
-                      style={{ backgroundColor: '#0a0a0a', borderColor: '#10b981' }}
+                      style={{ backgroundColor: '#0a0a0a', borderColor: '#3b82f6' }}
                       className="w-[1000px] h-[700px] border-[20px] pt-20 px-20 pb-28 flex flex-col items-center justify-between text-white font-sans relative"
                     >
                       <div className="absolute inset-0 opacity-5 pointer-events-none">
-                        <div style={{ background: 'radial-gradient(circle at center, #10b981, transparent, transparent)' }} className="w-full h-full" />
+                        <div style={{ background: 'radial-gradient(circle at center, #3b82f6, transparent, transparent)' }} className="w-full h-full" />
                       </div>
                       
                       <div className="text-center w-full">
-                        <div style={{ backgroundColor: '#10b981' }} className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8">
+                        <div style={{ backgroundColor: '#3b82f6' }} className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8">
                           <Terminal style={{ color: '#000000' }} className="w-12 h-12" />
                         </div>
                         <h1 className="text-6xl font-black tracking-tighter mb-4 w-full text-center">CERTIFICATE OF EXCELLENCE</h1>
                         <div className="flex justify-center w-full mb-8">
-                          <div style={{ backgroundColor: '#10b981' }} className="h-1 w-64" />
+                          <div style={{ backgroundColor: '#3b82f6' }} className="h-1 w-64" />
                         </div>
                         <p style={{ color: '#a1a1aa' }} className="text-xl uppercase tracking-[0.3em] font-bold">This is to certify that</p>
                       </div>
 
                       <div className="text-center">
-                        <h2 style={{ color: '#34d399' }} className="text-8xl font-black mb-4">{progress.userName || 'Student'}</h2>
+                        <h2 style={{ color: '#60a5fa' }} className="text-8xl font-black mb-4">{progress.userName || 'Student'}</h2>
                         <p style={{ color: '#d4d4d8' }} className="text-2xl max-w-2xl mx-auto leading-relaxed">
                           has successfully completed the global computer science roadmap and demonstrated mastery over advanced technical concepts at Shanmukh AI VidyaPeettham.
                         </p>
@@ -939,8 +939,8 @@ export default function App() {
                           <p style={{ color: '#71717a' }} className="text-sm font-bold uppercase tracking-widest">Date: {new Date().toLocaleDateString()}</p>
                         </div>
                         <div className="text-center mb-[-10px]">
-                          <Award style={{ color: '#10b981' }} className="w-20 h-20 mb-2" />
-                          <p style={{ color: '#10b981' }} className="text-xs font-bold uppercase tracking-widest">Official Seal</p>
+                          <Award style={{ color: '#3b82f6' }} className="w-20 h-20 mb-2" />
+                          <p style={{ color: '#3b82f6' }} className="text-xs font-bold uppercase tracking-widest">Official Seal</p>
                         </div>
                         <div className="text-right">
                           <div style={{ backgroundColor: '#3f3f46' }} className="h-px w-48 mb-4" />
@@ -965,7 +965,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-12">
                 <div>
                   <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                    <TrendingUp className="w-10 h-10 text-emerald-500" />
+                    <TrendingUp className="w-10 h-10 text-blue-500" />
                     Learning Analytics
                   </h1>
                   <p className="text-zinc-400">Deep dive into your progress and learning patterns.</p>
@@ -990,17 +990,17 @@ export default function App() {
                         setProgress(p);
                         progressService.saveProgress(p);
                       }}
-                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-emerald-500 hover:text-black transition-all active:scale-95"
+                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-blue-500 hover:text-black transition-all active:scale-95"
                     >
                       Seed Demo Data
                     </button>
                   )}
                   <div className="glass p-4 rounded-2xl text-center min-w-[120px]">
-                    <div className="text-2xl font-black text-emerald-500">{progress.completionHistory.length}</div>
+                    <div className="text-2xl font-black text-blue-500">{progress.completionHistory.length}</div>
                     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Actions</div>
                   </div>
                   <div className="glass p-4 rounded-2xl text-center min-w-[120px]">
-                    <div className="text-2xl font-black text-emerald-500">
+                    <div className="text-2xl font-black text-blue-500">
                       {progress.customTopics.filter(t => t.completed).length}
                     </div>
                     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Topics Mastered</div>
@@ -1013,7 +1013,7 @@ export default function App() {
                 <div className="glass p-8 rounded-3xl border border-white/5">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-emerald-500" />
+                      <Activity className="w-5 h-5 text-blue-500" />
                       Completion Velocity
                     </h3>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Last 7 Days</span>
@@ -1032,8 +1032,8 @@ export default function App() {
                       })()}>
                         <defs>
                           <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
@@ -1052,12 +1052,12 @@ export default function App() {
                         />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                          itemStyle={{ color: '#10b981' }}
+                          itemStyle={{ color: '#3b82f6' }}
                         />
                         <Area 
                           type="monotone" 
                           dataKey="count" 
-                          stroke="#10b981" 
+                          stroke="#3b82f6" 
                           strokeWidth={3}
                           fillOpacity={1} 
                           fill="url(#colorCount)" 
@@ -1071,7 +1071,7 @@ export default function App() {
                 <div className="glass p-8 rounded-3xl border border-white/5">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                      <PieChartIcon className="w-5 h-5 text-emerald-500" />
+                      <PieChartIcon className="w-5 h-5 text-blue-500" />
                       Learning Distribution
                     </h3>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">By Category</span>
@@ -1096,8 +1096,8 @@ export default function App() {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          <Cell fill="#10b981" />
                           <Cell fill="#3b82f6" />
+                          <Cell fill="#6366f1" />
                           <Cell fill="#8b5cf6" />
                           <Cell fill="#27272a" />
                         </Pie>
@@ -1108,7 +1108,7 @@ export default function App() {
                     </ResponsiveContainer>
                     <div className="flex flex-col gap-4 pr-8">
                       {[
-                        { label: 'Problems', color: 'bg-emerald-500', count: progress.completionHistory.filter(h => h.type === 'problem').length },
+                        { label: 'Problems', color: 'bg-blue-500', count: progress.completionHistory.filter(h => h.type === 'problem').length },
                         { label: 'Topics', color: 'bg-purple-500', count: progress.completionHistory.filter(h => h.type === 'topic').length },
                       ].map((item, i) => (
                         <div key={i} className="flex items-center gap-3">
@@ -1128,7 +1128,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 <div className="lg:col-span-2 glass p-8 rounded-3xl border border-white/5">
                   <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-emerald-500" />
+                    <Activity className="w-5 h-5 text-blue-500" />
                     Recent Activity
                   </h3>
                   <div className="space-y-4">
@@ -1142,7 +1142,7 @@ export default function App() {
                           <div className="flex items-center gap-4">
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center",
-                              entry.type === 'problem' ? "bg-emerald-500/10 text-emerald-500" :
+                              entry.type === 'problem' ? "bg-blue-500/10 text-blue-500" :
                               "bg-purple-500/10 text-purple-500"
                             )}>
                               {entry.type === 'problem' ? <CheckCircle2 className="w-5 h-5" /> :
@@ -1183,13 +1183,13 @@ export default function App() {
                           cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                           contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
                         />
-                        <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-6 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="mt-6 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
                     <p className="text-xs text-zinc-400 leading-relaxed">
-                      Your mastery is growing! You've focused primarily on <span className="text-emerald-400 font-bold">Problem Solving</span> this week.
+                      Your mastery is growing! You've focused primarily on <span className="text-blue-400 font-bold">Problem Solving</span> this week.
                     </p>
                   </div>
                 </div>
@@ -1207,7 +1207,7 @@ export default function App() {
             >
               <div className="mb-12">
                 <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                  <Briefcase className="w-10 h-10 text-emerald-500" />
+                  <Briefcase className="w-10 h-10 text-blue-500" />
                   Featured Projects
                 </h1>
                 <p className="text-zinc-400">A collection of my technical work and research.</p>
@@ -1242,10 +1242,10 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="glass rounded-3xl p-8 border border-white/5 flex flex-col h-full hover:border-emerald-500/30 transition-all group"
+                    className="glass rounded-3xl p-8 border border-white/5 flex flex-col h-full hover:border-blue-500/30 transition-all group"
                   >
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-4 group-hover:text-emerald-400 transition-colors">{project.title}</h3>
+                      <h3 className="text-xl font-bold mb-4 group-hover:text-blue-400 transition-colors">{project.title}</h3>
                       <p className="text-zinc-400 text-sm leading-relaxed mb-6">{project.description}</p>
                       <div className="flex flex-wrap gap-2 mb-8">
                         {project.tags.map((tag, j) => (
@@ -1270,7 +1270,7 @@ export default function App() {
                           href={project.demo} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-500 text-black rounded-xl text-xs font-bold hover:bg-emerald-400 transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all"
                         >
                           <ExternalLink className="w-4 h-4" />
                           Live Demo
@@ -1292,10 +1292,10 @@ export default function App() {
               className="max-w-4xl mx-auto p-8"
             >
               <div className="glass rounded-[40px] overflow-hidden border border-white/5">
-                <div className="h-48 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 relative">
+                <div className="h-48 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 relative">
                   <div className="absolute -bottom-16 left-12">
                     <div className="w-32 h-32 rounded-3xl bg-zinc-900 border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl overflow-hidden">
-                      <div className="w-full h-full bg-emerald-500 flex items-center justify-center">
+                      <div className="w-full h-full bg-blue-500 flex items-center justify-center">
                         <User className="w-16 h-16 text-black" />
                       </div>
                     </div>
@@ -1306,14 +1306,14 @@ export default function App() {
                   <div className="flex items-start justify-between mb-8">
                     <div>
                       <h1 className="text-4xl font-black mb-2">Pavan Shanmukh Kakarla</h1>
-                      <p className="text-emerald-400 font-bold">3rd Year B.Tech CSIT Undergraduate</p>
+                      <p className="text-blue-400 font-bold">3rd Year B.Tech CSIT Undergraduate</p>
                       <p className="text-zinc-500 text-sm">KL University</p>
                     </div>
                     <div className="flex gap-3">
                       <a href="#" className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5">
                         <Github className="w-5 h-5" />
                       </a>
-                      <a href="#" className="p-3 bg-emerald-500 text-black rounded-2xl hover:bg-emerald-400 transition-all">
+                      <a href="#" className="p-3 bg-blue-500 text-black rounded-2xl hover:bg-blue-400 transition-all">
                         <MessageSquare className="w-5 h-5" />
                       </a>
                     </div>
@@ -1321,7 +1321,7 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                      <div className="text-emerald-400 mb-2"><Award className="w-6 h-6" /></div>
+                      <div className="text-blue-400 mb-2"><Award className="w-6 h-6" /></div>
                       <div className="text-sm font-bold mb-1">Specialization</div>
                       <div className="text-xs text-zinc-500">Distributed Ledger Analytics</div>
                     </div>
@@ -1340,7 +1340,7 @@ export default function App() {
                   <div className="space-y-8">
                     <section>
                       <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                        <User className="w-5 h-5 text-emerald-500" />
+                        <User className="w-5 h-5 text-blue-500" />
                         About Me
                       </h3>
                       <p className="text-zinc-400 leading-relaxed">
@@ -1356,7 +1356,7 @@ export default function App() {
 
                     <section>
                       <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-emerald-500" />
+                        <Zap className="w-5 h-5 text-blue-500" />
                         Technical Skills
                       </h3>
                       <div className="flex flex-wrap gap-2">
@@ -1387,14 +1387,14 @@ export default function App() {
               {!isMeetActive ? (
                 <div className="flex-1 flex items-center justify-center">
                   <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden">
-                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl" />
-                    <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Video className="w-10 h-10 text-emerald-500" />
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Video className="w-10 h-10 text-blue-500" />
                     </div>
                     <h2 className="text-3xl font-black mb-4">Teaching Room</h2>
                     <p className="text-zinc-400 mb-8">
                       Practice teaching to AI students. They'll listen, ask questions, and respond based on your instructions.
-                      <br /><span className="text-[10px] text-emerald-500/60 mt-2 block">Tip: Use the monitor icon to share your screen and present your concepts.</span>
+                      <br /><span className="text-[10px] text-blue-500/60 mt-2 block">Tip: Use the monitor icon to share your screen and present your concepts.</span>
                     </p>
                     
                     <div className="text-left mb-8">
@@ -1402,7 +1402,7 @@ export default function App() {
                       <select 
                         value={studentInstruction}
                         onChange={(e) => setStudentInstruction(e.target.value)}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
                       >
                         <option value="A curious beginner who asks deep questions">Curious Beginner</option>
                         <option value="A skeptical student who needs proof for everything">Skeptical Expert</option>
@@ -1413,7 +1413,7 @@ export default function App() {
 
                     <button 
                       onClick={() => setIsMeetActive(true)}
-                      className="w-full py-4 bg-emerald-500 text-black rounded-2xl font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                      className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                     >
                       Start Session
                     </button>
@@ -1479,11 +1479,11 @@ export default function App() {
                             {/* Podium Overlay */}
                             {!isScreenSharing && (
                               <div className="absolute bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t-4 border-zinc-800 flex items-center justify-center">
-                                <div className="w-32 h-4 bg-emerald-500/20 rounded-full" />
+                                <div className="w-32 h-4 bg-blue-500/20 rounded-full" />
                               </div>
                             )}
                             {isScreenSharing && (
-                              <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 shadow-lg">
+                              <div className="absolute top-4 right-4 px-3 py-1.5 bg-blue-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 shadow-lg">
                                 <Monitor className="w-3 h-3" />
                                 Sharing Screen
                               </div>
@@ -1492,8 +1492,8 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-zinc-900 z-20">
-                          <div className="w-32 h-32 bg-emerald-500/10 rounded-full flex items-center justify-center">
-                            <VideoOff className="w-12 h-12 text-emerald-500/50" />
+                          <div className="w-32 h-32 bg-blue-500/10 rounded-full flex items-center justify-center">
+                            <VideoOff className="w-12 h-12 text-blue-500/50" />
                           </div>
                         </div>
                       )}
@@ -1503,7 +1503,7 @@ export default function App() {
                           onClick={() => setIsPresenting(!isPresenting)}
                           className={cn(
                             "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                            isPresenting ? "bg-emerald-500 text-black" : "bg-white/10 text-white hover:bg-white/20"
+                            isPresenting ? "bg-blue-500 text-black" : "bg-white/10 text-white hover:bg-white/20"
                           )}
                         >
                           {isPresenting ? 'Stop Presenting' : 'Start Presentation'}
@@ -1533,7 +1533,7 @@ export default function App() {
                           onClick={handleScreenShare}
                           className={cn(
                             "p-3 rounded-full transition-all",
-                            isScreenSharing ? "bg-emerald-500 text-black" : "bg-white/10 hover:bg-white/20"
+                            isScreenSharing ? "bg-blue-500 text-black" : "bg-white/10 hover:bg-white/20"
                           )}
                           title="Share Screen"
                         >
@@ -1561,7 +1561,7 @@ export default function App() {
                       <div className="absolute top-6 left-6 px-4 py-2 glass rounded-full flex items-center gap-2 z-30">
                         <div className={cn(
                           "w-2 h-2 rounded-full animate-pulse",
-                          isPresenting ? "bg-emerald-500" : "bg-red-500"
+                          isPresenting ? "bg-blue-500" : "bg-red-500"
                         )} />
                         <span className="text-xs font-bold uppercase tracking-widest">
                           {isPresenting ? 'Mode: Seminar Presentation' : 'Mode: Teaching Room'}
@@ -1572,7 +1572,7 @@ export default function App() {
                     <div className="grid grid-cols-3 gap-4 h-32">
                       {[1, 2, 3].map(i => (
                         <div key={i} className="glass rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                          <Users className="w-8 h-8 text-zinc-800 group-hover:text-emerald-500/20 transition-colors" />
+                          <Users className="w-8 h-8 text-zinc-800 group-hover:text-blue-500/20 transition-colors" />
                           <div className="absolute bottom-2 left-2 text-[10px] font-bold text-zinc-500 uppercase">AI Participant {i}</div>
                         </div>
                       ))}
@@ -1583,14 +1583,14 @@ export default function App() {
                     <div className="flex flex-col glass rounded-3xl overflow-hidden border border-white/5 max-h-[40%]">
                       <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-emerald-400" />
+                          <Users className="w-4 h-4 text-blue-400" />
                           <span className="font-bold text-sm">Participants</span>
                         </div>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-full font-bold">4 Online</span>
+                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full font-bold">4 Online</span>
                       </div>
                       <div className="flex-1 overflow-y-auto p-4 space-y-2">
                         {[
-                          { name: progress.userName || 'You', role: 'Teacher', status: 'Host', color: 'bg-emerald-500' },
+                          { name: progress.userName || 'You', role: 'Teacher', status: 'Host', color: 'bg-blue-500' },
                           { name: 'AI Student 1', role: 'Student', status: 'Curious', color: 'bg-blue-500' },
                           { name: 'AI Student 2', role: 'Student', status: 'Skeptical', color: 'bg-purple-500' },
                           { name: 'AI Student 3', role: 'Student', status: 'Distracted', color: 'bg-orange-500' },
@@ -1608,7 +1608,7 @@ export default function App() {
                                 <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">{participant.role}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                <div className="w-1 h-1 rounded-full bg-blue-500" />
                                 <span className="text-[9px] text-zinc-500">{participant.status}</span>
                               </div>
                             </div>
@@ -1624,7 +1624,7 @@ export default function App() {
                     {/* Class Chat */}
                     <div className="flex-1 flex flex-col glass rounded-3xl overflow-hidden border border-white/5">
                       <div className="p-4 border-b border-white/10 flex items-center gap-2 bg-white/5">
-                        <MessageSquare className="w-4 h-4 text-emerald-400" />
+                        <MessageSquare className="w-4 h-4 text-blue-400" />
                         <span className="font-bold text-sm">Class Chat</span>
                       </div>
 
@@ -1651,7 +1651,7 @@ export default function App() {
                             <div className={cn(
                               "max-w-[85%] p-3 rounded-2xl text-sm shadow-sm",
                               msg.role === 'teacher' 
-                                ? "bg-emerald-500 text-black rounded-tr-none" 
+                                ? "bg-blue-500 text-black rounded-tr-none" 
                                 : "bg-white/5 border border-white/10 rounded-tl-none"
                             )}>
                               {msg.text}
@@ -1663,9 +1663,9 @@ export default function App() {
                             <span className="text-[10px] text-zinc-500 mb-1 uppercase tracking-widest font-bold">Student</span>
                             <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none">
                               <div className="flex gap-1">
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
                               </div>
                             </div>
                           </div>
@@ -1679,11 +1679,11 @@ export default function App() {
                             value={meetInput}
                             onChange={(e) => setMeetInput(e.target.value)}
                             placeholder="Teach something..."
-                            className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                            className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                           />
                           <button 
                             type="submit"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:text-emerald-400 transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:text-blue-400 transition-colors"
                           >
                             <Send className="w-5 h-5" />
                           </button>
@@ -1769,11 +1769,11 @@ export default function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.8 }}
               onClick={() => setActiveTab('meet')}
-              className="fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 bg-emerald-500 text-black rounded-2xl font-black shadow-2xl shadow-emerald-500/40 hover:bg-emerald-400 transition-all active:scale-95 group"
+              className="fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 bg-blue-500 text-black rounded-2xl font-black shadow-2xl shadow-blue-500/40 hover:bg-blue-400 transition-all active:scale-95 group"
             >
               <div className="relative">
                 <Video className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-emerald-500 rounded-full animate-pulse" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-blue-500 rounded-full animate-pulse" />
               </div>
               <div className="text-left">
                 <div className="text-[10px] uppercase tracking-widest opacity-70 leading-none mb-1">Live Session</div>
@@ -1783,6 +1783,7 @@ export default function App() {
             </motion.button>
           )}
         </AnimatePresence>
+        </AnimatePresence>
       </main>
 
       <style>{`
@@ -1790,7 +1791,7 @@ export default function App() {
           transform: scaleX(-1);
         }
         .prose h1, .prose h2, .prose h3 {
-          @apply text-emerald-400 font-bold mt-6 mb-4;
+          @apply text-blue-400 font-bold mt-6 mb-4;
         }
         .prose p {
           @apply text-zinc-300 mb-4 leading-relaxed;
@@ -1799,17 +1800,17 @@ export default function App() {
           @apply list-disc list-inside space-y-2 mb-4 text-zinc-300;
         }
         .prose a {
-          @apply text-emerald-400 hover:underline;
+          @apply text-blue-400 hover:underline;
         }
         .prose code {
-          @apply bg-white/10 px-1.5 py-0.5 rounded text-emerald-300 font-mono text-sm;
+          @apply bg-white/10 px-1.5 py-0.5 rounded text-blue-300 font-mono text-sm;
         }
       `}</style>
 
       {/* Floating Chat Button */}
       <button 
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-black rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center hover:scale-110 transition-all active:scale-95 z-[100]"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-black rounded-full shadow-[0_0_20px_rgba(59,130,246,0.4)] flex items-center justify-center hover:scale-110 transition-all active:scale-95 z-[100]"
       >
         {isChatOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
       </button>
@@ -1825,7 +1826,7 @@ export default function App() {
           >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <Sparkles className="w-4 h-4 text-blue-400" />
                 <span className="font-bold text-sm">AI Tutor</span>
               </div>
               <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white">
@@ -1836,8 +1837,8 @@ export default function App() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {chatMessages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                  <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4">
-                    <Terminal className="w-6 h-6 text-emerald-500" />
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <Terminal className="w-6 h-6 text-blue-500" />
                   </div>
                   <h4 className="font-bold mb-2">How can I help you?</h4>
                   <p className="text-xs text-zinc-500">Ask me anything about coding, your roadmap, or technical concepts.</p>
@@ -1851,7 +1852,7 @@ export default function App() {
                   <div className={cn(
                     "max-w-[85%] p-3 rounded-2xl text-sm",
                     msg.role === 'user' 
-                      ? "bg-emerald-500 text-black rounded-tr-none" 
+                      ? "bg-blue-500 text-black rounded-tr-none" 
                       : "bg-white/5 border border-white/10 rounded-tl-none"
                   )}>
                     <Markdown>{msg.parts[0].text}</Markdown>
@@ -1862,9 +1863,9 @@ export default function App() {
                 <div className="flex flex-col items-start">
                   <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none">
                     <div className="flex gap-1">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
                     </div>
                   </div>
                 </div>
@@ -1878,12 +1879,12 @@ export default function App() {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask something..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
                 <button 
                   type="submit"
                   disabled={isChatTyping}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:text-blue-400 transition-colors disabled:opacity-50"
                 >
                   <Send className="w-5 h-5" />
                 </button>
