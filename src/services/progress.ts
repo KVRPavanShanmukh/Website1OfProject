@@ -131,6 +131,33 @@ export const progressService = {
         const newCompleted = !t.completed;
         // If topic is completed, mark all problems as completed
         const updatedProblems = t.problems.map(prob => ({ ...prob, completed: newCompleted }));
+        
+        if (newCompleted) {
+          // Add topic to history
+          if (!p.completionHistory.find(h => h.id === t.id)) {
+            p.completionHistory.push({
+              id: t.id,
+              type: 'topic',
+              title: t.title,
+              timestamp: Date.now()
+            });
+          }
+          // Add all problems to history if not already there
+          updatedProblems.forEach(prob => {
+            if (!p.completionHistory.find(h => h.id === prob.id)) {
+              p.completionHistory.push({
+                id: prob.id,
+                type: 'problem',
+                title: prob.title,
+                timestamp: Date.now()
+              });
+            }
+          });
+        } else {
+          // Remove topic and its problems from history
+          p.completionHistory = p.completionHistory.filter(h => h.id !== t.id && !t.problems.find(p => p.id === h.id));
+        }
+        
         return { ...t, completed: newCompleted, problems: updatedProblems };
       }
       return t;
@@ -148,8 +175,15 @@ export const progressService = {
     const p = progressService.getProgress();
     if (p.completedTopics.includes(topic)) {
       p.completedTopics = p.completedTopics.filter(t => t !== topic);
+      p.completionHistory = p.completionHistory.filter(h => h.id !== topic);
     } else {
       p.completedTopics.push(topic);
+      p.completionHistory.push({
+        id: topic,
+        type: 'topic',
+        title: topic,
+        timestamp: Date.now()
+      });
     }
     progressService.saveProgress(p);
     return p;

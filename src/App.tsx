@@ -31,6 +31,9 @@ import {
   FolderOpen,
   ExternalLink,
   ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  Clock,
   Loader2,
   TrendingUp,
   Activity,
@@ -147,6 +150,8 @@ export default function App() {
   const [userNameInput, setUserNameInput] = useState(progress.userName);
   const [gameScore, setGameScore] = useState(0);
   const [gameHighScore, setGameHighScore] = useState(() => Number(localStorage.getItem('2048-highscore') || 0));
+  const [gameAttempts, setGameAttempts] = useState(() => Number(localStorage.getItem('2048-attempts') || 0));
+  const [lockoutUntil, setLockoutUntil] = useState(() => Number(localStorage.getItem('2048-lockout') || 0));
   const [grid, setGrid] = useState<number[][]>(() => {
     const initialGrid = Array(4).fill(0).map(() => Array(4).fill(0));
     // Add two initial tiles
@@ -163,6 +168,19 @@ export default function App() {
   });
 
   const initGame = () => {
+    // Check lockout
+    if (lockoutUntil > Date.now()) return;
+
+    const newAttempts = gameAttempts + 1;
+    setGameAttempts(newAttempts);
+    localStorage.setItem('2048-attempts', newAttempts.toString());
+
+    if (newAttempts >= 3) {
+      const until = Date.now() + 24 * 60 * 60 * 1000;
+      setLockoutUntil(until);
+      localStorage.setItem('2048-lockout', until.toString());
+    }
+
     const newGrid = Array(4).fill(0).map(() => Array(4).fill(0));
     let count = 0;
     while (count < 2) {
@@ -176,6 +194,19 @@ export default function App() {
     setGrid(newGrid);
     setGameScore(0);
   };
+
+  useEffect(() => {
+    const checkLockout = () => {
+      if (lockoutUntil > 0 && Date.now() > lockoutUntil) {
+        setLockoutUntil(0);
+        setGameAttempts(0);
+        localStorage.setItem('2048-lockout', '0');
+        localStorage.setItem('2048-attempts', '0');
+      }
+    };
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
 
   const move = (direction: 'up' | 'down' | 'left' | 'right') => {
     let newGrid = JSON.parse(JSON.stringify(grid));
@@ -279,6 +310,14 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatTyping, setIsChatTyping] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('auth_token') === 'true');
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('user_email') || '');
+  const [loginStep, setLoginStep] = useState<'email' | 'otp'>('email');
+  const [emailInput, setEmailInput] = useState('');
+  const [otpInput, setOtpInput] = useState(['', '', '', '', '', '']);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -351,6 +390,71 @@ export default function App() {
       }
     }
   }, [isMeetActive, isCamOn, isScreenSharing, screenStream, cameraStream, activeTab]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    
+    if (!emailInput.toLowerCase().endsWith('@gmail.com')) {
+      setAuthError('Only @gmail.com accounts are accepted.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    // Simulate network delay for "sending" OTP
+    setTimeout(() => {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(code);
+      setLoginStep('otp');
+      setIsSendingOtp(false);
+      // In a real frontend-only demo, we'll show the OTP in a toast or console
+      console.log(`[AUTH DEBUG] OTP for ${emailInput}: ${code}`);
+    }, 1500);
+  };
+
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    const enteredOtp = otpInput.join('');
+    
+    if (enteredOtp === generatedOtp) {
+      setIsAuthenticated(true);
+      setUserEmail(emailInput);
+      localStorage.setItem('auth_token', 'true');
+      localStorage.setItem('user_email', emailInput);
+      triggerConfetti();
+    } else {
+      setAuthError('Invalid OTP. Please try again.');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_email');
+    setLoginStep('email');
+    setEmailInput('');
+    setOtpInput(['', '', '', '', '', '']);
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otpInput];
+    newOtp[index] = value.slice(-1);
+    setOtpInput(newOtp);
+
+    // Auto-focus next
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpInput[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
 
   const handleScreenShare = async () => {
     if (isScreenSharing) {
@@ -521,6 +625,149 @@ export default function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 font-sans">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]" />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full glass rounded-[40px] p-10 border border-white/10 relative z-10"
+        >
+          <div className="flex flex-col items-center text-center mb-10">
+            <div className="w-20 h-20 bg-blue-500 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-6">
+              <Terminal className="text-black w-10 h-10" />
+            </div>
+            <h1 className="text-3xl font-black mb-2 tracking-tight">Welcome Back</h1>
+            <p className="text-zinc-500 text-sm">Sign in to your Gmail account to continue</p>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {loginStep === 'email' ? (
+              <motion.form 
+                key="email-step"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                onSubmit={handleLogin}
+                className="space-y-6"
+              >
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Email Address</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <input 
+                      type="email"
+                      required
+                      placeholder="name@gmail.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {authError && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    {authError}
+                  </div>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={isSendingOtp}
+                  className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {isSendingOtp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    <>
+                      Send One-Time Password
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </motion.form>
+            ) : (
+              <motion.form 
+                key="otp-step"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onSubmit={handleVerifyOtp}
+                className="space-y-8"
+              >
+                <div className="text-center">
+                  <p className="text-xs text-zinc-400 mb-6">
+                    We've sent a 6-digit code to <br/>
+                    <span className="text-blue-400 font-bold">{emailInput}</span>
+                  </p>
+                  
+                  <div className="flex justify-between gap-2">
+                    {otpInput.map((digit, i) => (
+                      <input 
+                        key={i}
+                        id={`otp-${i}`}
+                        type="text"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(i, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                        className="w-12 h-16 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-black focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Debug Info for Demo */}
+                  <div className="mt-6 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-[10px] text-blue-400 font-mono">
+                    DEBUG: Your OTP is {generatedOtp}
+                  </div>
+                </div>
+
+                {authError && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    {authError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <button 
+                    type="submit"
+                    className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                  >
+                    Verify & Sign In
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setLoginStep('email')}
+                    className="w-full py-2 text-zinc-500 text-xs font-bold hover:text-zinc-300 transition-colors"
+                  >
+                    Change Email Address
+                  </button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          <div className="mt-12 pt-8 border-t border-white/5 text-center">
+            <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+              Secure Frontend Authentication
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <AnimatePresence>
@@ -577,6 +824,13 @@ export default function App() {
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
             <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
             <span className="text-xs font-mono text-blue-400 font-bold">{masteredCount} Mastered</span>
+            <button 
+              onClick={handleLogout}
+              className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+              title="Logout"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </nav>
@@ -1445,18 +1699,51 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto p-8"
+              className="max-w-6xl mx-auto p-8"
             >
-              <div className="mb-12">
-                <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                  <Zap className="w-10 h-10 text-yellow-500" />
-                  Brain Games
-                </h1>
-                <p className="text-zinc-400">Take a mental break and sharpen your logic.</p>
+              <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
+                    <Zap className="w-10 h-10 text-yellow-500" />
+                    Brain Games
+                  </h1>
+                  <p className="text-zinc-400">Take a mental break and sharpen your logic.</p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <div className="glass px-6 py-3 rounded-2xl border-blue-500/20 bg-blue-500/5">
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Daily Attempts</div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map(i => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "w-3 h-3 rounded-full",
+                            i <= gameAttempts ? "bg-blue-500" : "bg-white/10"
+                          )} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {lockoutUntil > Date.now() && (
+                    <div className="glass px-6 py-3 rounded-2xl border-red-500/20 bg-red-500/5">
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Reset In</div>
+                      <div className="text-sm font-black text-red-400">
+                        {(() => {
+                          const diff = lockoutUntil - Date.now();
+                          const hours = Math.floor(diff / (1000 * 60 * 60));
+                          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                          const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                          return `${hours}h ${mins}m ${secs}s`;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="glass p-8 rounded-[40px] border border-white/5 flex flex-col items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 glass p-8 rounded-[40px] border border-white/5 flex flex-col items-center">
                   <div className="flex items-center justify-between w-full mb-8">
                     <div>
                       <h3 className="text-2xl font-black">2048</h3>
@@ -1474,12 +1761,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="aspect-square w-full max-w-[320px] bg-zinc-900 rounded-2xl p-3 grid grid-cols-4 gap-3 relative">
+                  <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
                     {grid.flat().map((val, i) => (
                       <div 
                         key={i} 
                         className={cn(
-                          "rounded-lg flex items-center justify-center text-xl font-black transition-all duration-100",
+                          "rounded-lg flex items-center justify-center text-2xl font-black transition-all duration-100",
                           val === 0 ? "bg-white/5 text-transparent" : 
                           val === 2 ? "bg-zinc-200 text-zinc-900" :
                           val === 4 ? "bg-zinc-100 text-zinc-900" :
@@ -1497,7 +1784,30 @@ export default function App() {
                         {val !== 0 ? val : ''}
                       </div>
                     ))}
-                    {grid.flat().every(v => v !== 0) && (
+                    
+                    {lockoutUntil > Date.now() && (
+                      <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                          <Clock className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h4 className="text-2xl font-black mb-4">Daily Limit Reached</h4>
+                        <p className="text-zinc-400 mb-8 max-w-xs">
+                          You've completed your 3 daily sessions. Take a break and focus on your learning goals!
+                        </p>
+                        <div className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-2">Next Session Available In</div>
+                        <div className="text-3xl font-black text-white">
+                          {(() => {
+                            const diff = lockoutUntil - Date.now();
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                            return `${hours}h ${mins}m ${secs}s`;
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {grid.flat().every(v => v !== 0) && lockoutUntil <= Date.now() && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-6">
                         <Zap className="w-12 h-12 text-yellow-500 mb-4" />
                         <h4 className="text-xl font-bold mb-2">Game Over!</h4>
@@ -1511,50 +1821,80 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-6 flex justify-center">
-                    <button 
-                      onClick={initGame}
-                      className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
-                    >
-                      Reset Game
-                    </button>
-                  </div>
+                  
+                  {lockoutUntil <= Date.now() && (
+                    <div className="mt-8 flex gap-4">
+                      <button 
+                        onClick={initGame}
+                        className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                      >
+                        {gameAttempts === 0 ? 'Start First Game' : 'New Session'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-8">
                   <div className="glass p-8 rounded-[40px] border border-white/5">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-blue-400" />
-                      Why play?
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      <Info className="w-5 h-5 text-blue-400" />
+                      How to Play
                     </h3>
-                    <ul className="space-y-4 text-sm text-zinc-400">
-                      <li className="flex gap-3">
-                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Controls</div>
+                        <div className="grid grid-cols-3 gap-2 max-w-[120px]">
+                          <div />
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                            <ChevronUp className="w-4 h-4" />
+                          </div>
+                          <div />
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                            <ChevronLeft className="w-4 h-4" />
+                          </div>
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                            <ChevronDown className="w-4 h-4" />
+                          </div>
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
                         </div>
-                        Improves pattern recognition and spatial awareness.
-                      </li>
-                      <li className="flex gap-3">
-                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
-                        </div>
-                        Enhances logical thinking and strategic planning.
-                      </li>
-                      <li className="flex gap-3">
-                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
-                        </div>
-                        Provides a healthy dopamine boost during study breaks.
-                      </li>
-                    </ul>
+                        <p className="text-[10px] text-zinc-500 mt-2">Use Arrow Keys to move tiles</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Instructions</div>
+                        <ol className="space-y-3 text-sm text-zinc-400">
+                          <li className="flex gap-3">
+                            <span className="text-blue-500 font-bold">01.</span>
+                            <span>When two tiles with the same number touch, they <b>merge into one</b>!</span>
+                          </li>
+                          <li className="flex gap-3">
+                            <span className="text-blue-500 font-bold">02.</span>
+                            <span>Every move spawns a new tile (2 or 4) in an empty spot.</span>
+                          </li>
+                          <li className="flex gap-3">
+                            <span className="text-blue-500 font-bold">03.</span>
+                            <span>Plan your moves to keep the largest tiles in a corner.</span>
+                          </li>
+                        </ol>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Winning Rule</div>
+                        <p className="text-sm text-zinc-400">
+                          Create a tile with the number <span className="text-yellow-500 font-bold">2048</span> to win the game!
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="glass p-8 rounded-[40px] border border-white/5 relative overflow-hidden group cursor-pointer">
-                    <div className="absolute top-0 right-0 p-4">
-                      <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">More Games Coming Soon</h3>
-                    <p className="text-sm text-zinc-500">We're building Sudoku, Chess, and Logic Puzzles to keep your brain sharp!</p>
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
+                    <h3 className="text-lg font-bold mb-2">Daily Play Policy</h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                      To ensure a balanced learning experience, we limit gaming to 3 sessions per day. Use these breaks to recharge your mind!
+                    </p>
                   </div>
                 </div>
               </div>
