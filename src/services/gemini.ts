@@ -13,13 +13,13 @@ export async function getGeneralizedTopicName(query: string): Promise<string> {
 export async function fetchChallengesForTopic(topic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Find ALL possible coding challenges, practice problems, and interview questions for the topic: "${topic}".
+    contents: `Find at least 70+ coding challenges, practice problems, and interview questions for the topic: "${topic}".
     Search across all major platforms like LeetCode, Codeforces, CodeChef, HackerRank, GeeksforGeeks, InterviewBit, TopCoder, etc.
     
     Organize them into:
     1. "Best Resource": The single most recommended resource or problem set for this topic.
     2. "Top 20 Interview Questions": The most essential questions.
-    3. "Comprehensive Problem List": As many other relevant problems as possible from various websites.
+    3. "Comprehensive Problem List": At least 50+ other relevant problems from various websites to reach a total of 70+ problems.
     
     Provide direct URLs and ensure they are high quality.`,
     config: {

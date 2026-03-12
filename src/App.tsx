@@ -68,6 +68,7 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(progressService.getProgress());
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
+  const [showMoreProblems, setShowMoreProblems] = useState<Record<string, boolean>>({});
   const [userNameInput, setUserNameInput] = useState(progress.userName);
   
   // Meet State
@@ -659,9 +660,11 @@ export default function App() {
                 ) : (
                   progress.customTopics.map((topic, i) => {
                     const isExpanded = expandedTopics.includes(topic.id);
+                    const showAll = showMoreProblems[topic.id] || false;
                     const bestResource = topic.problems.find(p => p.category === 'best');
                     const interviewQuestions = topic.problems.filter(p => p.category === 'interview');
                     const relatedProblems = topic.problems.filter(p => p.category === 'related');
+                    const visibleRelated = showAll ? relatedProblems : relatedProblems.slice(0, 10);
 
                     return (
                       <motion.div 
@@ -848,12 +851,22 @@ export default function App() {
                                     {relatedProblems.length > 0 && (
                                       <div className="space-y-4">
                                         <div className="h-px bg-white/5 w-full" />
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                                          <Globe className="w-3 h-3" />
-                                          Comprehensive Problem List
-                                        </h4>
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                                            <Globe className="w-3 h-3" />
+                                            Comprehensive Problem List ({relatedProblems.length})
+                                          </h4>
+                                          {relatedProblems.length > 10 && (
+                                            <button 
+                                              onClick={() => setShowMoreProblems(prev => ({ ...prev, [topic.id]: !showAll }))}
+                                              className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
+                                            >
+                                              {showAll ? 'Show Less' : `Show All (${relatedProblems.length})`}
+                                            </button>
+                                          )}
+                                        </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                          {relatedProblems.map((prob: any) => (
+                                          {visibleRelated.map((prob: any) => (
                                             <div 
                                               key={prob.id}
                                               className={cn(
