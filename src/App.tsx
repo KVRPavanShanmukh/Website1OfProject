@@ -60,6 +60,81 @@ import { cn } from './lib/utils';
 
 type Tab = 'search' | 'progress' | 'meet' | 'analytics' | 'about' | 'projects';
 
+const BootingLoader = () => {
+  const [lines, setLines] = useState<string[]>([]);
+  const bootSequence = [
+    "> INITIALIZING SHANMUKH AI KERNEL...",
+    "> LOADING NEURAL NETWORKS...",
+    "> CONNECTING TO GLOBAL KNOWLEDGE GRAPH...",
+    "> FETCHING CHALLENGES FROM LEETCODE...",
+    "> PARSING GEEKSFORGEEKS REPOSITORY...",
+    "> OPTIMIZING LEARNING PATHWAY...",
+    "> INJECTING KNOWLEDGE INTO ROADMAP...",
+    "> SYSTEM READY."
+  ];
+
+  useEffect(() => {
+    let currentLine = 0;
+    const interval = setInterval(() => {
+      if (currentLine < bootSequence.length) {
+        setLines(prev => [...prev, bootSequence[currentLine]]);
+        currentLine++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8 font-mono"
+    >
+      <div className="max-w-xl w-full">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center animate-pulse">
+            <Terminal className="w-6 h-6 text-black" />
+          </div>
+          <div>
+            <h2 className="text-blue-500 font-bold text-xl tracking-tighter">SYSTEM BOOT</h2>
+            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em]">Shanmukh AI VidyaPeettham v2.5</p>
+          </div>
+        </div>
+        
+        <div className="space-y-2 mb-12">
+          {lines.map((line, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-blue-400/80 text-sm"
+            >
+              {line}
+            </motion.div>
+          ))}
+          <motion.div 
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ repeat: Infinity, duration: 0.8 }}
+            className="w-2 h-4 bg-blue-500 inline-block align-middle ml-1"
+          />
+        </div>
+
+        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: '100%' }}
+            transition={{ duration: 3.2, ease: "linear" }}
+            className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]"
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -338,6 +413,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
+      <AnimatePresence>
+        {isAddingTopic && <BootingLoader />}
+      </AnimatePresence>
       {/* Navigation */}
       <nav className="h-16 border-b border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -557,6 +635,24 @@ export default function App() {
                       animate={{ width: `${currentProgress}%` }}
                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                     />
+                  </div>
+
+                  <div className="h-[120px] w-full mb-8 opacity-50 hover:opacity-100 transition-opacity">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={Array.from({ length: 7 }).map((_, i) => {
+                        const date = subDays(new Date(), 6 - i);
+                        const count = progress.completionHistory.filter(h => isSameDay(new Date(h.timestamp), date)).length;
+                        return { name: format(date, 'EEE'), count };
+                      })}>
+                        <defs>
+                          <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <Area type="monotone" dataKey="count" stroke="#3b82f6" fillOpacity={1} fill="url(#colorProgress)" strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
 
                   <form onSubmit={handleSearch} className="flex gap-2">
