@@ -58,7 +58,7 @@ import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, 
 import { progressService, Progress } from './services/progress';
 import { cn } from './lib/utils';
 
-type Tab = 'search' | 'progress' | 'meet' | 'analytics' | 'about' | 'projects';
+type Tab = 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about';
 
 const BootingLoader = () => {
   const [lines, setLines] = useState<string[]>([]);
@@ -145,6 +145,116 @@ export default function App() {
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
   const [showMoreProblems, setShowMoreProblems] = useState<Record<string, boolean>>({});
   const [userNameInput, setUserNameInput] = useState(progress.userName);
+  const [gameScore, setGameScore] = useState(0);
+  const [gameHighScore, setGameHighScore] = useState(() => Number(localStorage.getItem('2048-highscore') || 0));
+  const [grid, setGrid] = useState<number[][]>(() => {
+    const initialGrid = Array(4).fill(0).map(() => Array(4).fill(0));
+    // Add two initial tiles
+    let count = 0;
+    while (count < 2) {
+      const r = Math.floor(Math.random() * 4);
+      const c = Math.floor(Math.random() * 4);
+      if (initialGrid[r][c] === 0) {
+        initialGrid[r][c] = Math.random() > 0.9 ? 4 : 2;
+        count++;
+      }
+    }
+    return initialGrid;
+  });
+
+  const initGame = () => {
+    const newGrid = Array(4).fill(0).map(() => Array(4).fill(0));
+    let count = 0;
+    while (count < 2) {
+      const r = Math.floor(Math.random() * 4);
+      const c = Math.floor(Math.random() * 4);
+      if (newGrid[r][c] === 0) {
+        newGrid[r][c] = Math.random() > 0.9 ? 4 : 2;
+        count++;
+      }
+    }
+    setGrid(newGrid);
+    setGameScore(0);
+  };
+
+  const move = (direction: 'up' | 'down' | 'left' | 'right') => {
+    let newGrid = JSON.parse(JSON.stringify(grid));
+    let moved = false;
+    let addedScore = 0;
+
+    const rotate = (matrix: number[][]) => {
+      const n = matrix.length;
+      const res = Array(n).fill(0).map(() => Array(n).fill(0));
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          res[j][n - 1 - i] = matrix[i][j];
+        }
+      }
+      return res;
+    };
+
+    // Normalize direction to 'left'
+    let rotations = 0;
+    if (direction === 'up') rotations = 3;
+    if (direction === 'right') rotations = 2;
+    if (direction === 'down') rotations = 1;
+
+    for (let i = 0; i < rotations; i++) newGrid = rotate(newGrid);
+
+    // Slide and merge left
+    for (let i = 0; i < 4; i++) {
+      let row = newGrid[i].filter((v: number) => v !== 0);
+      for (let j = 0; j < row.length - 1; j++) {
+        if (row[j] === row[j + 1]) {
+          row[j] *= 2;
+          addedScore += row[j];
+          row.splice(j + 1, 1);
+          moved = true;
+        }
+      }
+      while (row.length < 4) row.push(0);
+      if (JSON.stringify(newGrid[i]) !== JSON.stringify(row)) moved = true;
+      newGrid[i] = row;
+    }
+
+    // Rotate back
+    for (let i = 0; i < (4 - rotations) % 4; i++) newGrid = rotate(newGrid);
+
+    if (moved) {
+      // Add a new tile
+      const emptyCells = [];
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (newGrid[r][c] === 0) emptyCells.push({ r, c });
+        }
+      }
+      if (emptyCells.length > 0) {
+        const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        newGrid[r][c] = Math.random() > 0.9 ? 4 : 2;
+      }
+      setGrid(newGrid);
+      setGameScore(prev => prev + addedScore);
+      if (gameScore + addedScore > gameHighScore) {
+        setGameHighScore(gameScore + addedScore);
+        localStorage.setItem('2048-highscore', (gameScore + addedScore).toString());
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeTab !== 'games') return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === 'ArrowUp') move('up');
+        if (e.key === 'ArrowDown') move('down');
+        if (e.key === 'ArrowLeft') move('left');
+        if (e.key === 'ArrowRight') move('right');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [grid, activeTab, gameScore, gameHighScore]);
   
   // Meet State
   const [isMeetActive, setIsMeetActive] = useState(false);
@@ -431,10 +541,10 @@ export default function App() {
           {[
             { id: 'search', icon: Search, label: 'Global Search' },
             { id: 'progress', icon: BookOpen, label: 'My Roadmap' },
-            { id: 'projects', icon: Briefcase, label: 'Projects' },
-            { id: 'analytics', icon: TrendingUp, label: 'Analytics' },
+            { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
+            { id: 'games', icon: Zap, label: 'Games' },
             { id: 'meet', icon: Video, label: 'Dummy Meet' },
-            { id: 'about', icon: Info, label: 'About' }
+            { id: 'about', icon: User, label: 'Portfolio' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1100,67 +1210,121 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'analytics' && (
+          {activeTab === 'leaderboard' && (
             <motion.div 
-              key="analytics"
+              key="leaderboard"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className="max-w-6xl mx-auto p-8"
             >
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex flex-col lg:flex-row items-start justify-between gap-8 mb-12">
                 <div>
                   <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                    <TrendingUp className="w-10 h-10 text-blue-500" />
-                    Learning Analytics
+                    <Trophy className="w-10 h-10 text-yellow-500" />
+                    Leaderboard & Stats
                   </h1>
-                  <p className="text-zinc-400">Deep dive into your progress and learning patterns.</p>
+                  <p className="text-zinc-400">Track your rank, earn badges, and analyze your performance.</p>
                 </div>
-                <div className="flex gap-4">
-                  {progress.completionHistory.length === 0 && (
-                    <button 
-                      onClick={() => {
-                        const mockHistory = [];
-                        const types: ('problem' | 'topic')[] = ['problem', 'topic'];
-                        for (let i = 0; i < 30; i++) {
-                          const daysAgo = Math.floor(Math.random() * 10);
-                          const type = types[Math.floor(Math.random() * 2)];
-                          mockHistory.push({
-                            id: Math.random().toString(36).substr(2, 9),
-                            type,
-                            title: `Example ${type.charAt(0).toUpperCase() + type.slice(1)} ${i + 1}`,
-                            timestamp: subDays(new Date(), daysAgo).getTime() - (Math.random() * 3600000 * 24)
-                          });
-                        }
-                        const p = { ...progress, completionHistory: mockHistory.sort((a, b) => a.timestamp - b.timestamp) };
-                        setProgress(p);
-                        progressService.saveProgress(p);
-                      }}
-                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-blue-500 hover:text-black transition-all active:scale-95"
-                    >
-                      Seed Demo Data
-                    </button>
-                  )}
-                  <div className="glass p-4 rounded-2xl text-center min-w-[120px]">
-                    <div className="text-2xl font-black text-blue-500">{progress.completionHistory.length}</div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Actions</div>
-                  </div>
-                  <div className="glass p-4 rounded-2xl text-center min-w-[120px]">
-                    <div className="text-2xl font-black text-blue-500">
-                      {progress.customTopics.filter(t => t.completed).length}
+                
+                <div className="flex flex-wrap gap-4">
+                  <div className="glass p-6 rounded-3xl text-center min-w-[140px] border-yellow-500/20 bg-yellow-500/5">
+                    <div className="text-3xl font-black text-yellow-500">
+                      {progress.completionHistory.filter(h => h.type === 'problem').length * 10 + 
+                       progress.completionHistory.filter(h => h.type === 'topic').length * 50}
                     </div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Topics Mastered</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Points</div>
+                  </div>
+                  <div className="glass p-6 rounded-3xl text-center min-w-[140px] border-blue-500/20 bg-blue-500/5">
+                    <div className="text-3xl font-black text-blue-500">
+                      #{Math.max(1, 150 - (progress.completionHistory.length * 2))}
+                    </div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Global Rank</div>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* Completion Over Time */}
-                <div className="glass p-8 rounded-3xl border border-white/5">
+              {/* Gamification: Badges */}
+              <div className="mb-12">
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-purple-500" />
+                  Your Achievements
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[
+                    { id: 'first', icon: Zap, label: 'First Step', desc: 'Complete 1 problem', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 1 },
+                    { id: 'topic', icon: BookOpen, label: 'Topic Master', desc: 'Complete 1 topic', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 1 },
+                    { id: 'scholar', icon: Award, label: 'Scholar', desc: 'Complete 10 problems', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 10 },
+                    { id: 'streak', icon: Flame, label: 'On Fire', desc: '3 day streak', achieved: progress.completionHistory.length >= 5 },
+                    { id: 'expert', icon: Star, label: 'Expert', desc: 'Master 5 topics', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 5 },
+                    { id: 'perfect', icon: CheckCircle2, label: 'Perfect Score', desc: '100% Roadmap', achieved: calculateProgress() === 100 && progress.customTopics.length > 0 },
+                  ].map((badge) => (
+                    <div 
+                      key={badge.id}
+                      className={cn(
+                        "p-4 rounded-2xl border flex flex-col items-center text-center transition-all",
+                        badge.achieved 
+                          ? "glass border-purple-500/30 bg-purple-500/5" 
+                          : "bg-white/5 border-white/5 opacity-40 grayscale"
+                      )}
+                    >
+                      <badge.icon className={cn("w-8 h-8 mb-3", badge.achieved ? "text-purple-400" : "text-zinc-600")} />
+                      <div className="text-xs font-bold mb-1">{badge.label}</div>
+                      <div className="text-[8px] text-zinc-500 uppercase tracking-tighter">{badge.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                {/* Global Leaderboard */}
+                <div className="lg:col-span-1 glass p-8 rounded-3xl border border-white/5">
+                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    Top Scholars
+                  </h3>
+                  <div className="space-y-4">
+                    {[
+                      { name: 'Alex Rivera', points: 2450, rank: 1, avatar: 'AR' },
+                      { name: 'Sarah Chen', points: 2100, rank: 2, avatar: 'SC' },
+                      { name: 'Jordan Smith', points: 1950, rank: 3, avatar: 'JS' },
+                      { name: progress.userName || 'You', points: progress.completionHistory.filter(h => h.type === 'problem').length * 10 + progress.completionHistory.filter(h => h.type === 'topic').length * 50, rank: 'Me', isMe: true },
+                      { name: 'Mika Tanaka', points: 1800, rank: 4, avatar: 'MT' },
+                      { name: 'Liam Wilson', points: 1650, rank: 5, avatar: 'LW' },
+                    ].sort((a, b) => b.points - a.points).map((user, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-2xl transition-all",
+                          user.isMe ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+                            {user.avatar || (progress.userName ? progress.userName.substring(0, 2).toUpperCase() : 'U')}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold">{user.name}</div>
+                            <div className="text-[10px] text-zinc-500">{user.points} pts</div>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "text-xs font-black",
+                          i === 0 ? "text-yellow-500" : i === 1 ? "text-zinc-400" : i === 2 ? "text-orange-500" : "text-zinc-600"
+                        )}>
+                          #{i + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Analytics: Completion Over Time */}
+                <div className="lg:col-span-2 glass p-8 rounded-3xl border border-white/5">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                       <Activity className="w-5 h-5 text-blue-500" />
-                      Completion Velocity
+                      Activity Trend
                     </h3>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Last 7 Days</span>
                   </div>
@@ -1183,46 +1347,27 @@ export default function App() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                        <XAxis 
-                          dataKey="date" 
-                          stroke="#71717a" 
-                          fontSize={10} 
-                          tickLine={false} 
-                          axisLine={false} 
-                        />
-                        <YAxis 
-                          stroke="#71717a" 
-                          fontSize={10} 
-                          tickLine={false} 
-                          axisLine={false} 
-                        />
+                        <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
                           itemStyle={{ color: '#3b82f6' }}
                         />
-                        <Area 
-                          type="monotone" 
-                          dataKey="count" 
-                          stroke="#3b82f6" 
-                          strokeWidth={3}
-                          fillOpacity={1} 
-                          fill="url(#colorCount)" 
-                        />
+                        <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
+              </div>
 
-                {/* Distribution by Type */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Distribution */}
                 <div className="glass p-8 rounded-3xl border border-white/5">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      <PieChartIcon className="w-5 h-5 text-blue-500" />
-                      Learning Distribution
-                    </h3>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">By Category</span>
-                  </div>
-                  <div className="h-[300px] w-full flex items-center">
+                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <PieChartIcon className="w-5 h-5 text-blue-500" />
+                    Learning Distribution
+                  </h3>
+                  <div className="h-[250px] w-full flex items-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1232,199 +1377,186 @@ export default function App() {
                           ].filter(d => d.value > 0).length > 0 ? [
                             { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
                             { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
-                          ] : [
-                            { name: 'No Data', value: 1 }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={5}
-                          dataKey="value"
+                          ] : [{ name: 'No Data', value: 1 }]}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
                         >
                           <Cell fill="#3b82f6" />
-                          <Cell fill="#6366f1" />
                           <Cell fill="#8b5cf6" />
                           <Cell fill="#27272a" />
                         </Pie>
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="flex flex-col gap-4 pr-8">
-                      {[
-                        { label: 'Problems', color: 'bg-blue-500', count: progress.completionHistory.filter(h => h.type === 'problem').length },
-                        { label: 'Topics', color: 'bg-purple-500', count: progress.completionHistory.filter(h => h.type === 'topic').length },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <div className={cn("w-3 h-3 rounded-full", item.color)} />
-                          <div>
-                            <div className="text-xs font-bold">{item.label}</div>
-                            <div className="text-[10px] text-zinc-500">{item.count} Actions</div>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-blue-500" />
+                        <div>
+                          <div className="text-xs font-bold">Problems</div>
+                          <div className="text-[10px] text-zinc-500">{progress.completionHistory.filter(h => h.type === 'problem').length}</div>
                         </div>
-                      ))}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-purple-500" />
+                        <div>
+                          <div className="text-xs font-bold">Topics</div>
+                          <div className="text-[10px] text-zinc-500">{progress.completionHistory.filter(h => h.type === 'topic').length}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Recent Activity Feed */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                <div className="lg:col-span-2 glass p-8 rounded-3xl border border-white/5">
-                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-500" />
-                    Recent Activity
-                  </h3>
-                  <div className="space-y-4">
-                    {progress.completionHistory.length === 0 ? (
-                      <div className="text-center py-12 text-zinc-500">
-                        No activity recorded yet. Start learning to see your progress!
-                      </div>
-                    ) : (
-                      progress.completionHistory.slice().reverse().slice(0, 6).map((entry, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                          <div className="flex items-center gap-4">
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center",
-                              entry.type === 'problem' ? "bg-blue-500/10 text-blue-500" :
-                              "bg-purple-500/10 text-purple-500"
-                            )}>
-                              {entry.type === 'problem' ? <CheckCircle2 className="w-5 h-5" /> :
-                               <Trophy className="w-5 h-5" />}
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold">{entry.title}</div>
-                              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                                {entry.type} Completed
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-xs text-zinc-500 font-mono">
-                            {format(new Date(entry.timestamp), 'MMM dd, HH:mm')}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
+                {/* Mastery Breakdown */}
                 <div className="glass p-8 rounded-3xl border border-white/5">
                   <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    Mastery Breakdown
+                    <BarChart3 className="w-5 h-5 text-blue-500" />
+                    Topic-wise Progress
                   </h3>
-                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { name: 'Easy', count: progress.completionHistory.filter(h => h.title.toLowerCase().includes('easy')).length || 5 },
-                        { name: 'Medium', count: progress.completionHistory.filter(h => h.title.toLowerCase().includes('medium')).length || 3 },
-                        { name: 'Hard', count: progress.completionHistory.filter(h => h.title.toLowerCase().includes('hard')).length || 1 },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                        <XAxis dataKey="name" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip 
-                          cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                          contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                        />
-                        <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-6 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Your mastery is growing! You've focused primarily on <span className="text-blue-400 font-bold">Problem Solving</span> this week.
-                    </p>
+                  <div className="space-y-6">
+                    {progress.customTopics.length === 0 ? (
+                      <div className="text-center py-12 text-zinc-500 text-sm">Add topics to see breakdown.</div>
+                    ) : (
+                      progress.customTopics.slice(0, 4).map((topic, i) => {
+                        const completed = topic.problems.filter(p => p.completed).length;
+                        const total = topic.problems.length;
+                        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                        return (
+                          <div key={i}>
+                            <div className="flex justify-between text-xs font-bold mb-2">
+                              <span>{topic.title}</span>
+                              <span className="text-blue-400">{pct}%</span>
+                            </div>
+                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-blue-500" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {activeTab === 'projects' && (
+          {activeTab === 'games' && (
             <motion.div 
-              key="projects"
+              key="games"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
+              className="max-w-4xl mx-auto p-8"
             >
               <div className="mb-12">
                 <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                  <Briefcase className="w-10 h-10 text-blue-500" />
-                  Featured Projects
+                  <Zap className="w-10 h-10 text-yellow-500" />
+                  Brain Games
                 </h1>
-                <p className="text-zinc-400">A collection of my technical work and research.</p>
+                <p className="text-zinc-400">Take a mental break and sharpen your logic.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {[
-                  {
-                    title: "Ransomware Pre-Encryption Detection System",
-                    description: "Built a proactive ransomware detection system using behavioral anomaly monitoring. Designed real-time file system tracking with Watchdog, implemented threshold-based mass rename detection, secure event ingestion via Flask API, MySQL logging, email alerting, and automated analytical report generation.",
-                    tags: ["Python", "Flask", "MySQL", "Cybersecurity"],
-                    repo: "https://github.com/PavanShanmukh/ransomware-detection",
-                    demo: null
-                  },
-                  {
-                    title: "Word Count using AVL Tree",
-                    description: "Analyzed text documents and counted unique words and frequencies using self-balancing AVL trees for optimal performance.",
-                    tags: ["C++", "Data Structures", "Algorithms"],
-                    repo: "https://github.com/PavanShanmukh/word-count-avl",
-                    demo: "https://word-count-avl.demo"
-                  },
-                  {
-                    title: "Distributed Ledger Analytics Tool",
-                    description: "A research project exploring data patterns in distributed ledgers to identify anomalies and trends.",
-                    tags: ["Blockchain", "Analytics", "Research"],
-                    repo: "https://github.com/PavanShanmukh/ledger-analytics",
-                    demo: null
-                  }
-                ].map((project, i) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="glass rounded-3xl p-8 border border-white/5 flex flex-col h-full hover:border-blue-500/30 transition-all group"
-                  >
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-4 group-hover:text-blue-400 transition-colors">{project.title}</h3>
-                      <p className="text-zinc-400 text-sm leading-relaxed mb-6">{project.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-8">
-                        {project.tags.map((tag, j) => (
-                          <span key={j} className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-white/5 rounded-md text-zinc-500">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="glass p-8 rounded-[40px] border border-white/5 flex flex-col items-center">
+                  <div className="flex items-center justify-between w-full mb-8">
+                    <div>
+                      <h3 className="text-2xl font-black">2048</h3>
+                      <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Merge tiles to win</p>
                     </div>
                     <div className="flex gap-4">
-                      <a 
-                        href={project.repo} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
-                      >
-                        <Github className="w-4 h-4" />
-                        Repository
-                      </a>
-                      {project.demo && (
-                        <a 
-                          href={project.demo} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Live Demo
-                        </a>
-                      )}
+                      <div className="glass px-4 py-2 rounded-xl text-center">
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase">Score</div>
+                        <div className="text-lg font-black text-blue-500">{gameScore}</div>
+                      </div>
+                      <div className="glass px-4 py-2 rounded-xl text-center">
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase">Best</div>
+                        <div className="text-lg font-black text-yellow-500">{gameHighScore}</div>
+                      </div>
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+
+                  <div className="aspect-square w-full max-w-[320px] bg-zinc-900 rounded-2xl p-3 grid grid-cols-4 gap-3 relative">
+                    {grid.flat().map((val, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "rounded-lg flex items-center justify-center text-xl font-black transition-all duration-100",
+                          val === 0 ? "bg-white/5 text-transparent" : 
+                          val === 2 ? "bg-zinc-200 text-zinc-900" :
+                          val === 4 ? "bg-zinc-100 text-zinc-900" :
+                          val === 8 ? "bg-orange-200 text-zinc-900" :
+                          val === 16 ? "bg-orange-300 text-zinc-900" :
+                          val === 32 ? "bg-orange-400 text-white" :
+                          val === 64 ? "bg-orange-500 text-white" :
+                          val === 128 ? "bg-yellow-200 text-zinc-900 shadow-[0_0_10px_rgba(254,240,138,0.5)]" :
+                          val === 256 ? "bg-yellow-300 text-zinc-900 shadow-[0_0_15px_rgba(253,224,71,0.6)]" :
+                          val === 512 ? "bg-yellow-400 text-zinc-900 shadow-[0_0_20px_rgba(250,204,21,0.7)]" :
+                          val === 1024 ? "bg-yellow-500 text-white shadow-[0_0_25px_rgba(234,179,8,0.8)]" :
+                          "bg-yellow-600 text-white shadow-[0_0_30px_rgba(202,138,4,0.9)]"
+                        )}
+                      >
+                        {val !== 0 ? val : ''}
+                      </div>
+                    ))}
+                    {grid.flat().every(v => v !== 0) && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-6">
+                        <Zap className="w-12 h-12 text-yellow-500 mb-4" />
+                        <h4 className="text-xl font-bold mb-2">Game Over!</h4>
+                        <p className="text-sm text-zinc-400 mb-6">Final Score: {gameScore}</p>
+                        <button 
+                          onClick={initGame}
+                          className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-6 flex justify-center">
+                    <button 
+                      onClick={initGame}
+                      className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+                    >
+                      Reset Game
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-blue-400" />
+                      Why play?
+                    </h3>
+                    <ul className="space-y-4 text-sm text-zinc-400">
+                      <li className="flex gap-3">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                        </div>
+                        Improves pattern recognition and spatial awareness.
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                        </div>
+                        Enhances logical thinking and strategic planning.
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                        </div>
+                        Provides a healthy dopamine boost during study breaks.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="glass p-8 rounded-[40px] border border-white/5 relative overflow-hidden group cursor-pointer">
+                    <div className="absolute top-0 right-0 p-4">
+                      <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">More Games Coming Soon</h3>
+                    <p className="text-sm text-zinc-500">We're building Sudoku, Chess, and Logic Puzzles to keep your brain sharp!</p>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -1435,33 +1567,33 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto p-8"
+              className="max-w-6xl mx-auto p-8"
             >
-              <div className="glass rounded-[40px] overflow-hidden border border-white/5">
-                <div className="h-48 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 relative">
+              <div className="glass rounded-[40px] overflow-hidden border border-white/5 mb-12">
+                <div className="h-64 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 relative">
                   <div className="absolute -bottom-16 left-12">
-                    <div className="w-32 h-32 rounded-3xl bg-zinc-900 border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl overflow-hidden">
+                    <div className="w-40 h-40 rounded-3xl bg-zinc-900 border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl overflow-hidden">
                       <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-                        <User className="w-16 h-16 text-black" />
+                        <User className="w-20 h-20 text-black" />
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="pt-20 pb-12 px-12">
-                  <div className="flex items-start justify-between mb-8">
+                <div className="pt-24 pb-12 px-12">
+                  <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
                     <div>
-                      <h1 className="text-4xl font-black mb-2">Pavan Shanmukh Kakarla</h1>
-                      <p className="text-blue-400 font-bold">3rd Year B.Tech CSIT Undergraduate</p>
-                      <p className="text-zinc-500 text-sm">KL University</p>
+                      <h1 className="text-5xl font-black mb-2 tracking-tighter">Pavan Shanmukh Kakarla</h1>
+                      <p className="text-blue-400 font-bold text-xl">3rd Year B.Tech CSIT Undergraduate</p>
+                      <p className="text-zinc-500">KL University • India</p>
                     </div>
                     <div className="flex gap-3">
-                      <a href="#" className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5">
-                        <Github className="w-5 h-5" />
+                      <a href="https://github.com/PavanShanmukh" target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5">
+                        <Github className="w-6 h-6" />
                       </a>
-                      <a href="#" className="p-3 bg-blue-500 text-black rounded-2xl hover:bg-blue-400 transition-all">
-                        <MessageSquare className="w-5 h-5" />
-                      </a>
+                      <button className="px-6 py-4 bg-blue-500 text-black font-bold rounded-2xl hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20">
+                        Contact Me
+                      </button>
                     </div>
                   </div>
 
@@ -1478,38 +1610,70 @@ export default function App() {
                     </div>
                     <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
                       <div className="text-purple-400 mb-2"><Globe className="w-6 h-6" /></div>
-                      <div className="text-sm font-bold mb-1">Location</div>
-                      <div className="text-xs text-zinc-500">India</div>
+                      <div className="text-sm font-bold mb-1">Interests</div>
+                      <div className="text-xs text-zinc-500">AI, Blockchain, CyberSec</div>
                     </div>
                   </div>
 
-                  <div className="space-y-8">
+                  <div className="space-y-12">
                     <section>
-                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                        <User className="w-5 h-5 text-blue-500" />
-                        About Me
+                      <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                        <Info className="w-6 h-6 text-blue-500" />
+                        Professional Summary
                       </h3>
-                      <p className="text-zinc-400 leading-relaxed">
+                      <p className="text-zinc-400 leading-relaxed text-lg">
                         I am a passionate Computer Science and Information Technology student at KL University, currently in my 3rd year. 
                         My academic focus is on Distributed Ledger Analytics, where I explore the intersection of blockchain technology and data science.
-                      </p>
-                      <p className="text-zinc-400 leading-relaxed mt-4">
-                        Beyond my specialization, I have a strong interest in cybersecurity and software engineering. I have developed several projects 
-                        ranging from proactive ransomware detection systems to optimized data structure implementations. I am always eager to learn 
-                        new technologies and tackle complex problems.
+                        I specialize in building secure, scalable full-stack applications with a focus on proactive security measures.
                       </p>
                     </section>
 
                     <section>
-                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-blue-500" />
-                        Technical Skills
+                      <h3 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                        <Briefcase className="w-6 h-6 text-blue-500" />
+                        Featured Projects
                       </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {["Python", "C++", "Flask", "MySQL", "Blockchain", "Data Structures", "Algorithms", "Cybersecurity", "React", "TypeScript"].map((skill, i) => (
-                          <span key={i} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-zinc-400">
-                            {skill}
-                          </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {[
+                          {
+                            title: "Ransomware Pre-Encryption Detection System",
+                            description: "Built a proactive ransomware detection system using behavioral anomaly monitoring. Designed real-time file system tracking with Watchdog, implemented threshold-based mass rename detection, secure event ingestion via Flask API, MySQL logging, email alerting, and automated analytical report generation.",
+                            tags: ["Python", "Flask", "MySQL", "Cybersecurity"],
+                            repo: "https://github.com/PavanShanmukh/ransomware-detection"
+                          },
+                          {
+                            title: "Word Count using AVL Tree",
+                            description: "Analyzed text documents and counted unique words and frequencies using self-balancing AVL trees for optimal performance.",
+                            tags: ["C++", "Data Structures", "Algorithms"],
+                            repo: "https://github.com/PavanShanmukh/word-count-avl"
+                          },
+                          {
+                            title: "Distributed Ledger Analytics Tool",
+                            description: "A research project exploring data patterns in distributed ledgers to identify anomalies and trends.",
+                            tags: ["Blockchain", "Analytics", "Research"],
+                            repo: "https://github.com/PavanShanmukh/ledger-analytics"
+                          }
+                        ].map((project, i) => (
+                          <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group">
+                            <h4 className="text-xl font-bold mb-4 group-hover:text-blue-400 transition-colors">{project.title}</h4>
+                            <p className="text-zinc-400 text-sm leading-relaxed mb-6">{project.description}</p>
+                            <div className="flex flex-wrap gap-2 mb-8">
+                              {project.tags.map((tag, j) => (
+                                <span key={j} className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-white/10 rounded-md text-zinc-400">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            <a 
+                              href={project.repo} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:underline"
+                            >
+                              <Github className="w-4 h-4" />
+                              View Repository
+                            </a>
+                          </div>
                         ))}
                       </div>
                     </section>
