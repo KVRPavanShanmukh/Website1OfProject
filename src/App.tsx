@@ -57,6 +57,7 @@ import {
 } from 'recharts';
 import { format, subDays, startOfDay, isSameDay, eachDayOfInterval } from 'date-fns';
 import confetti from 'canvas-confetti';
+import { io } from 'socket.io-client';
 import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, getGeneralizedTopicName, chatWithAI } from './services/gemini';
 import { progressService, Progress } from './services/progress';
 import { cn } from './lib/utils';
@@ -137,6 +138,8 @@ const BootingLoader = () => {
     </motion.div>
   );
 };
+
+const socket = io();
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('search');
@@ -318,6 +321,7 @@ export default function App() {
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<{ email: string; name: string; points: number; lastUpdate: number }[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -390,6 +394,27 @@ export default function App() {
       }
     }
   }, [isMeetActive, isCamOn, isScreenSharing, screenStream, cameraStream, activeTab]);
+
+  useEffect(() => {
+    socket.on('leaderboard_update', (data) => {
+      setGlobalLeaderboard(data);
+    });
+    return () => {
+      socket.off('leaderboard_update');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && userEmail) {
+      const points = progress.completionHistory.filter(h => h.type === 'problem').length * 10 + 
+                     progress.completionHistory.filter(h => h.type === 'topic').length * 50;
+      socket.emit('update_points', {
+        email: userEmail,
+        name: progress.userName || userEmail.split('@')[0],
+        points
+      });
+    }
+  }, [progress.completionHistory, progress.userName, isAuthenticated, userEmail]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1538,24 +1563,17 @@ export default function App() {
                     Top Scholars
                   </h3>
                   <div className="space-y-4">
-                    {[
-                      { name: 'Alex Rivera', points: 2450, rank: 1, avatar: 'AR' },
-                      { name: 'Sarah Chen', points: 2100, rank: 2, avatar: 'SC' },
-                      { name: 'Jordan Smith', points: 1950, rank: 3, avatar: 'JS' },
-                      { name: progress.userName || 'You', points: progress.completionHistory.filter(h => h.type === 'problem').length * 10 + progress.completionHistory.filter(h => h.type === 'topic').length * 50, rank: 'Me', isMe: true },
-                      { name: 'Mika Tanaka', points: 1800, rank: 4, avatar: 'MT' },
-                      { name: 'Liam Wilson', points: 1650, rank: 5, avatar: 'LW' },
-                    ].sort((a, b) => b.points - a.points).map((user, i) => (
+                    {globalLeaderboard.map((user, i) => (
                       <div 
-                        key={i} 
+                        key={user.email} 
                         className={cn(
                           "flex items-center justify-between p-3 rounded-2xl transition-all",
-                          user.isMe ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
+                          user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
                         )}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                            {user.avatar || (progress.userName ? progress.userName.substring(0, 2).toUpperCase() : 'U')}
+                            {user.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <div className="text-xs font-bold">{user.name}</div>
