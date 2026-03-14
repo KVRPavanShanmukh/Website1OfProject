@@ -49,7 +49,10 @@ import {
   Lightbulb,
   Fan,
   Power,
-  RefreshCw
+  RefreshCw,
+  Home,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -66,7 +69,7 @@ import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, 
 import { progressService, Progress } from './services/progress';
 import { cn } from './lib/utils';
 
-type Tab = 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about';
+type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about';
 
 const BootingLoader = () => {
   const [lines, setLines] = useState<string[]>([]);
@@ -146,7 +149,7 @@ const BootingLoader = () => {
 const socket = io();
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('search');
+  const [activeTab, setActiveTab] = useState<Tab>('landing');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ text: string; sources: any[] } | null>(null);
@@ -461,6 +464,8 @@ export default function App() {
     localStorage.setItem('auth_token', 'true');
     localStorage.setItem('user_email', usernameInput);
     triggerConfetti();
+    // Redirect to landing page (which will now show the hero section)
+    setActiveTab('landing');
   };
 
   const handleLogout = () => {
@@ -470,6 +475,8 @@ export default function App() {
     setUsernameInput('');
     setCaptchaInput('');
     setIsComputerOn(false);
+    setIsMeetActive(false);
+    setActiveTab('landing');
   };
 
   const handleScreenShare = async () => {
@@ -641,94 +648,6 @@ export default function App() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 font-sans relative overflow-hidden">
-        {/* Background Glows */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]" />
-        </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full glass rounded-[40px] p-10 border border-white/10 relative z-10"
-        >
-          <div className="flex flex-col items-center text-center mb-10">
-            <div className="w-20 h-20 bg-blue-500 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-6">
-              <Terminal className="text-black w-10 h-10" />
-            </div>
-            <h1 className="text-3xl font-black mb-2 tracking-tight">System Login</h1>
-            <p className="text-zinc-500 text-sm">Enter credentials to access the platform</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input 
-                  type="text"
-                  required
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="Enter your username"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">CAPTCHA Verification</label>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center font-mono text-xl tracking-[0.3em] text-blue-400 select-none italic line-through decoration-white/20 h-14">
-                  {currentCaptcha}
-                </div>
-                <button 
-                  type="button"
-                  onClick={generateCaptcha}
-                  className="p-3 bg-white/5 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-colors h-14 w-14 flex items-center justify-center"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              </div>
-              <input 
-                type="text"
-                required
-                value={captchaInput}
-                onChange={(e) => setCaptchaInput(e.target.value)}
-                placeholder="Enter CAPTCHA"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
-              />
-            </div>
-
-            {authError && (
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
-                <Info className="w-4 h-4" />
-                {authError}
-              </div>
-            )}
-
-            <button 
-              type="submit"
-              className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2"
-            >
-              Login to Platform
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          <div className="mt-12 pt-8 border-t border-white/5 text-center">
-            <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
-              Secure System Access
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <AnimatePresence>
@@ -736,7 +655,7 @@ export default function App() {
       </AnimatePresence>
       {/* Navigation */}
       <nav className="h-16 border-b border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('landing')}>
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Terminal className="text-black w-5 h-5" />
           </div>
@@ -747,12 +666,14 @@ export default function App() {
         
         <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full border border-white/10">
           {[
-            { id: 'search', icon: Search, label: 'Global Search' },
-            { id: 'progress', icon: BookOpen, label: 'My Roadmap' },
-            { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
-            { id: 'games', icon: Zap, label: 'Games' },
-            { id: 'meet', icon: Video, label: 'Dummy Meet' },
-            { id: 'about', icon: User, label: 'Portfolio' }
+            { id: 'landing', icon: Home, label: 'Home', public: true },
+            { id: 'search', icon: Search, label: 'Global Search', public: false },
+            { id: 'progress', icon: BookOpen, label: 'My Roadmap', public: false },
+            { id: 'leaderboard', icon: Trophy, label: 'Leaderboard', public: false },
+            { id: 'games', icon: Zap, label: 'Games', public: false },
+            { id: 'meet', icon: Video, label: 'Dummy Meet', public: false },
+            { id: 'about', icon: User, label: 'Portfolio', public: false },
+            ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
           ].map((tab) => (
             <button
               key={tab.id}
@@ -765,7 +686,7 @@ export default function App() {
               )}
             >
               <tab.icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="hidden lg:inline">{tab.label}</span>
               {tab.id === 'meet' && isMeetActive && (
                 <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
               )}
@@ -782,23 +703,500 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
-            <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
-            <span className="text-xs font-mono text-blue-400 font-bold">{masteredCount} Mastered</span>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+              <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
+              <span className="text-xs font-mono text-blue-400 font-bold">{masteredCount} Mastered</span>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
             <button 
-              onClick={handleLogout}
-              className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
-              title="Logout"
+              onClick={() => setActiveTab('login')}
+              className="px-4 py-2 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all active:scale-95"
             >
-              <X className="w-5 h-5" />
+              Get Started
             </button>
-          </div>
+          )}
         </div>
       </nav>
 
       <main className="flex-1 overflow-y-auto relative">
         <AnimatePresence mode="wait">
-          {activeTab === 'search' && (
+          {activeTab === 'landing' && (
+            <motion.div 
+              key="landing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="min-h-full"
+            >
+              {!isAuthenticated ? (
+                /* Interactive Room for Unauthenticated Users */
+                <div className={cn(
+                  "relative min-h-[calc(100vh-80px)] overflow-hidden transition-colors duration-1000",
+                  isLightOn ? "bg-zinc-100" : "bg-[#050505]"
+                )}>
+                  {/* Room Environment Effects */}
+                  <div className={cn(
+                    "absolute inset-0 transition-opacity duration-1000 pointer-events-none",
+                    isLightOn ? "opacity-0" : "opacity-100"
+                  )}>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 blur-[120px]" />
+                  </div>
+
+                  {/* Ceiling Light */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-zinc-800 rounded-b-xl z-20">
+                    <div className={cn(
+                      "absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-2 rounded-full transition-all duration-300",
+                      isLightOn ? "bg-yellow-200 shadow-[0_0_50px_20px_rgba(254,240,138,0.5)]" : "bg-zinc-900"
+                    )} />
+                  </div>
+
+                  {/* Wall Controls */}
+                  <div className="absolute top-1/3 left-20 flex flex-col gap-8 z-20">
+                    {/* Light Switch */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Light</span>
+                      <button 
+                        onClick={() => setIsLightOn(!isLightOn)}
+                        className={cn(
+                          "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
+                          isLightOn ? "bg-yellow-400 border-yellow-500" : "bg-zinc-800 border-zinc-700"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-full h-1/2 rounded-lg transition-all",
+                          isLightOn ? "bg-yellow-200 translate-y-full" : "bg-zinc-700"
+                        )} />
+                      </button>
+                    </div>
+
+                    {/* Fan Switch */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fan</span>
+                      <button 
+                        onClick={() => setIsFanOn(!isFanOn)}
+                        className={cn(
+                          "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
+                          isFanOn ? "bg-emerald-400 border-emerald-500" : "bg-zinc-800 border-zinc-700"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-full h-1/2 rounded-lg transition-all",
+                          isFanOn ? "bg-emerald-200 translate-y-full" : "bg-zinc-700"
+                        )} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Fan (Ceiling) */}
+                  <div className="absolute top-10 right-40 z-10">
+                    <motion.div 
+                      animate={{ rotate: isFanOn ? 360 : 0 }}
+                      transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+                      className={cn(
+                        "relative w-48 h-48 flex items-center justify-center transition-opacity",
+                        !isFanOn && "rotate-0"
+                      )}
+                    >
+                      <div className="absolute w-4 h-4 bg-zinc-700 rounded-full z-10" />
+                      <div className="absolute w-40 h-4 bg-zinc-600 rounded-full" />
+                      <div className="absolute w-4 h-40 bg-zinc-600 rounded-full" />
+                    </motion.div>
+                  </div>
+
+                  {/* Computer Setup */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[80%] flex flex-col items-center z-10">
+                    {/* Monitor */}
+                    <div className="relative w-full max-w-3xl aspect-video bg-zinc-800 rounded-[40px] p-6 border-[12px] border-zinc-700 shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
+                      <div className={cn(
+                        "w-full h-full rounded-2xl overflow-hidden transition-all duration-1000 relative",
+                        isComputerOn ? "bg-black" : "bg-zinc-900"
+                      )}>
+                        {isComputerOn ? (
+                          <AnimatePresence mode="wait">
+                            <motion.div 
+                              key="login-screen"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="w-full h-full bg-[#0a0a0a] flex items-center justify-center p-8 relative"
+                            >
+                              {/* Scanline effect */}
+                              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+                              
+                              <div className="w-full max-w-sm relative z-20">
+                                <div className="flex flex-col items-center text-center mb-8">
+                                  <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-4">
+                                    <Terminal className="text-black w-8 h-8" />
+                                  </div>
+                                  <h1 className="text-2xl font-black mb-1 tracking-tight">System Access</h1>
+                                  <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Authentication Required</p>
+                                </div>
+
+                                <form onSubmit={handleLogin} className="space-y-4">
+                                  <div className="space-y-1.5">
+                                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
+                                    <div className="relative">
+                                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                      <input 
+                                        type="text"
+                                        required
+                                        value={usernameInput}
+                                        onChange={(e) => setUsernameInput(e.target.value)}
+                                        placeholder="Enter username"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">CAPTCHA</label>
+                                    <div className="flex gap-2">
+                                      <div className="flex-1 bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center font-mono text-lg tracking-[0.3em] text-blue-400 select-none italic line-through decoration-white/20 h-12">
+                                        {currentCaptcha}
+                                      </div>
+                                      <button 
+                                        type="button"
+                                        onClick={generateCaptcha}
+                                        className="p-3 bg-white/5 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-colors h-12 w-12 flex items-center justify-center"
+                                      >
+                                        <RefreshCw className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                    <input 
+                                      type="text"
+                                      required
+                                      value={captchaInput}
+                                      onChange={(e) => setCaptchaInput(e.target.value)}
+                                      placeholder="Enter code"
+                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
+                                    />
+                                  </div>
+
+                                  {authError && (
+                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold flex items-center gap-2">
+                                      <Info className="w-3 h-3" />
+                                      {authError}
+                                    </div>
+                                  )}
+
+                                  <button 
+                                    type="submit"
+                                    className="w-full py-3 bg-blue-500 text-black rounded-xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 text-sm"
+                                  >
+                                    Initialize Session
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </form>
+                              </div>
+                            </motion.div>
+                          </AnimatePresence>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-zinc-800 animate-pulse" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Monitor Stand */}
+                      <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-40 h-16 bg-zinc-700" />
+                      <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-6 bg-zinc-600 rounded-full shadow-2xl" />
+                    </div>
+
+                    {/* Desk */}
+                    <div className="w-full h-12 bg-zinc-800 mt-20 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-b-8 border-zinc-900" />
+
+                    {/* CPU */}
+                    <div className="absolute bottom-0 right-20 w-40 h-64 bg-zinc-800 rounded-t-[32px] border-x-[12px] border-t-[12px] border-zinc-700 p-6 flex flex-col items-center gap-6 shadow-2xl">
+                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                      <button 
+                        onClick={() => setIsComputerOn(!isComputerOn)}
+                        className={cn(
+                          "w-16 h-16 rounded-full border-8 flex items-center justify-center transition-all mt-auto mb-4 group",
+                          isComputerOn ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)]" : "bg-zinc-900 border-zinc-700 hover:border-zinc-600"
+                        )}
+                      >
+                        <Power className={cn("w-8 h-8 transition-colors", isComputerOn ? "text-black" : "text-zinc-600 group-hover:text-zinc-500")} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Hero Section for Authenticated Users */
+                <>
+                  {/* Hero Section */}
+                  <div className="relative py-24 px-6 overflow-hidden">
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-gradient-to-b from-blue-500/10 to-transparent blur-[120px]" />
+                    </div>
+                    
+                    <div className="max-w-5xl mx-auto text-center relative z-10">
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        The Future of CS Education
+                      </motion.div>
+                      
+                      <h1 className="text-7xl font-black mb-8 tracking-tighter leading-[0.9]">
+                        WELCOME TO THE <br />
+                        <span className="text-blue-500 drop-shadow-[0_0_30px_rgba(59,130,246,0.4)]">AI VIDYAPEETTHAM</span>
+                      </h1>
+                      
+                      <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+                        An immersive, AI-driven workspace designed to help you master complex computer science concepts through real-time collaboration and personalized roadmaps.
+                      </p>
+                      
+                      <div className="flex flex-wrap justify-center gap-4">
+                        <button 
+                          onClick={() => setActiveTab('search')}
+                          className="px-8 py-4 bg-blue-500 text-black rounded-2xl font-black text-lg hover:bg-blue-400 transition-all shadow-xl shadow-blue-500/20 active:scale-95 flex items-center gap-2"
+                        >
+                          Go to Dashboard
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => setActiveTab('about')}
+                          className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl font-black text-lg hover:bg-white/10 transition-all active:scale-95"
+                        >
+                          Explore Features
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Feature Grid */}
+                  <div className="max-w-6xl mx-auto px-6 py-24 grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                      { title: "AI Roadmaps", desc: "Personalized learning paths generated instantly for any topic.", icon: BookOpen, color: "text-blue-400" },
+                      { title: "Real-time Leaderboard", desc: "Compete with students globally and track your ranking.", icon: Trophy, color: "text-yellow-400" },
+                      { title: "Interactive Meet", desc: "Collaborate in a virtual classroom with AI-simulated students.", icon: Video, color: "text-emerald-400" }
+                    ].map((feature, i) => (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="p-8 glass rounded-[32px] border border-white/10 hover:border-blue-500/30 transition-all group"
+                      >
+                        <feature.icon className={cn("w-12 h-12 mb-6 group-hover:scale-110 transition-transform", feature.color)} />
+                        <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                        <p className="text-zinc-500 text-sm leading-relaxed">{feature.desc}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'login' && !isAuthenticated && (
+            <motion.div 
+              key="login"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="min-h-full"
+            >
+              {/* Interactive Room for Login Tab */}
+              <div className={cn(
+                "relative min-h-[calc(100vh-80px)] overflow-hidden transition-colors duration-1000",
+                isLightOn ? "bg-zinc-100" : "bg-[#050505]"
+              )}>
+                {/* Room Environment Effects */}
+                <div className={cn(
+                  "absolute inset-0 transition-opacity duration-1000 pointer-events-none",
+                  isLightOn ? "opacity-0" : "opacity-100"
+                )}>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 blur-[120px]" />
+                </div>
+
+                {/* Ceiling Light */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-zinc-800 rounded-b-xl z-20">
+                  <div className={cn(
+                    "absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-2 rounded-full transition-all duration-300",
+                    isLightOn ? "bg-yellow-200 shadow-[0_0_50px_20px_rgba(254,240,138,0.5)]" : "bg-zinc-900"
+                  )} />
+                </div>
+
+                {/* Wall Controls */}
+                <div className="absolute top-1/3 left-20 flex flex-col gap-8 z-20">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Light</span>
+                    <button 
+                      onClick={() => setIsLightOn(!isLightOn)}
+                      className={cn(
+                        "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
+                        isLightOn ? "bg-yellow-400 border-yellow-500" : "bg-zinc-800 border-zinc-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-full h-1/2 rounded-lg transition-all",
+                        isLightOn ? "bg-yellow-200 translate-y-full" : "bg-zinc-700"
+                      )} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fan</span>
+                    <button 
+                      onClick={() => setIsFanOn(!isFanOn)}
+                      className={cn(
+                        "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
+                        isFanOn ? "bg-emerald-400 border-emerald-500" : "bg-zinc-800 border-zinc-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-full h-1/2 rounded-lg transition-all",
+                        isFanOn ? "bg-emerald-200 translate-y-full" : "bg-zinc-700"
+                      )} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Fan (Ceiling) */}
+                <div className="absolute top-10 right-40 z-10">
+                  <motion.div 
+                    animate={{ rotate: isFanOn ? 360 : 0 }}
+                    transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+                    className={cn(
+                      "relative w-48 h-48 flex items-center justify-center transition-opacity",
+                      !isFanOn && "rotate-0"
+                    )}
+                  >
+                    <div className="absolute w-4 h-4 bg-zinc-700 rounded-full z-10" />
+                    <div className="absolute w-40 h-4 bg-zinc-600 rounded-full" />
+                    <div className="absolute w-4 h-40 bg-zinc-600 rounded-full" />
+                  </motion.div>
+                </div>
+
+                {/* Computer Setup */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[80%] flex flex-col items-center z-10">
+                  <div className="relative w-full max-w-3xl aspect-video bg-zinc-800 rounded-[40px] p-6 border-[12px] border-zinc-700 shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
+                    <div className={cn(
+                      "w-full h-full rounded-2xl overflow-hidden transition-all duration-1000 relative",
+                      isComputerOn ? "bg-black" : "bg-zinc-900"
+                    )}>
+                      {isComputerOn ? (
+                        <AnimatePresence mode="wait">
+                          <motion.div 
+                            key="login-screen"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="w-full h-full bg-[#0a0a0a] flex items-center justify-center p-8 relative"
+                          >
+                            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+                            
+                            <div className="w-full max-w-sm relative z-20">
+                              <div className="flex flex-col items-center text-center mb-8">
+                                <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-4">
+                                  <Terminal className="text-black w-8 h-8" />
+                                </div>
+                                <h1 className="text-2xl font-black mb-1 tracking-tight">System Access</h1>
+                                <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Authentication Required</p>
+                              </div>
+
+                              <form onSubmit={handleLogin} className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
+                                  <div className="relative">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                    <input 
+                                      type="text"
+                                      required
+                                      value={usernameInput}
+                                      onChange={(e) => setUsernameInput(e.target.value)}
+                                      placeholder="Enter username"
+                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">CAPTCHA</label>
+                                  <div className="flex gap-2">
+                                    <div className="flex-1 bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center font-mono text-lg tracking-[0.3em] text-blue-400 select-none italic line-through decoration-white/20 h-12">
+                                      {currentCaptcha}
+                                    </div>
+                                    <button 
+                                      type="button"
+                                      onClick={generateCaptcha}
+                                      className="p-3 bg-white/5 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-colors h-12 w-12 flex items-center justify-center"
+                                    >
+                                      <RefreshCw className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                  <input 
+                                    type="text"
+                                    required
+                                    value={captchaInput}
+                                    onChange={(e) => setCaptchaInput(e.target.value)}
+                                    placeholder="Enter code"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
+                                  />
+                                </div>
+
+                                {authError && (
+                                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold flex items-center gap-2">
+                                    <Info className="w-3 h-3" />
+                                    {authError}
+                                  </div>
+                                )}
+
+                                <button 
+                                  type="submit"
+                                  className="w-full py-3 bg-blue-500 text-black rounded-xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 text-sm"
+                                >
+                                  Initialize Session
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </form>
+                            </div>
+                          </motion.div>
+                        </AnimatePresence>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-zinc-800 animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-40 h-16 bg-zinc-700" />
+                    <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-6 bg-zinc-600 rounded-full shadow-2xl" />
+                  </div>
+
+                  <div className="w-full h-12 bg-zinc-800 mt-20 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-b-8 border-zinc-900" />
+
+                  <div className="absolute bottom-0 right-20 w-40 h-64 bg-zinc-800 rounded-t-[32px] border-x-[12px] border-t-[12px] border-zinc-700 p-6 flex flex-col items-center gap-6 shadow-2xl">
+                    <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                    <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                    <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                    <button 
+                      onClick={() => setIsComputerOn(!isComputerOn)}
+                      className={cn(
+                        "w-16 h-16 rounded-full border-8 flex items-center justify-center transition-all mt-auto mb-4 group",
+                        isComputerOn ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)]" : "bg-zinc-900 border-zinc-700 hover:border-zinc-600"
+                      )}
+                    >
+                      <Power className={cn("w-8 h-8 transition-colors", isComputerOn ? "text-black" : "text-zinc-600 group-hover:text-zinc-500")} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'search' && isAuthenticated && (
             <motion.div 
               key="search"
               initial={{ opacity: 0, y: 20 }}
@@ -933,7 +1331,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'progress' && (
+          {activeTab === 'progress' && isAuthenticated && (
             <motion.div 
               key="progress"
               initial={{ opacity: 0, x: 20 }}
@@ -1425,7 +1823,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'leaderboard' && (
+          {activeTab === 'leaderboard' && isAuthenticated && (
             <motion.div 
               key="leaderboard"
               initial={{ opacity: 0, y: 20 }}
@@ -1647,7 +2045,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'games' && (
+          {activeTab === 'games' && isAuthenticated && (
             <motion.div 
               key="games"
               initial={{ opacity: 0, y: 20 }}
@@ -1855,7 +2253,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'about' && (
+          {activeTab === 'about' && isAuthenticated && (
             <motion.div 
               key="about"
               initial={{ opacity: 0, y: 20 }}
@@ -1978,7 +2376,7 @@ export default function App() {
           )}
 
           {/* Meet Tab - Persistent if active */}
-          {(activeTab === 'meet' || isMeetActive) && (
+          {(activeTab === 'meet' || isMeetActive) && isAuthenticated && (
             <motion.div 
               key="meet"
               initial={activeTab === 'meet' ? { opacity: 0, scale: 0.95 } : false}
