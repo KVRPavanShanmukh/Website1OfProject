@@ -45,7 +45,11 @@ import {
   Monitor,
   Youtube,
   Settings,
-  Share2
+  Share2,
+  Lightbulb,
+  Fan,
+  Power,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -315,13 +319,18 @@ export default function App() {
   const [isChatTyping, setIsChatTyping] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('auth_token') === 'true');
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('user_email') || '');
-  const [loginStep, setLoginStep] = useState<'email' | 'otp'>('email');
-  const [emailInput, setEmailInput] = useState('');
-  const [otpInput, setOtpInput] = useState(['', '', '', '', '', '']);
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [authError, setAuthError] = useState('');
   const [globalLeaderboard, setGlobalLeaderboard] = useState<{ email: string; name: string; points: number; lastUpdate: number }[]>([]);
+  
+  // Interactive Room State
+  const [isLightOn, setIsLightOn] = useState(true);
+  const [isFanOn, setIsFanOn] = useState(false);
+  const [isComputerOn, setIsComputerOn] = useState(false);
+  
+  // Login State
+  const [usernameInput, setUsernameInput] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [currentCaptcha, setCurrentCaptcha] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -416,69 +425,51 @@ export default function App() {
     }
   }, [progress.completionHistory, progress.userName, isAuthenticated, userEmail]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      generateCaptcha();
+    }
+  }, [isAuthenticated]);
+
+  const generateCaptcha = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCurrentCaptcha(result);
+    setCaptchaInput('');
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     
-    if (!emailInput.toLowerCase().endsWith('@gmail.com')) {
-      setAuthError('Only @gmail.com accounts are accepted.');
+    if (!usernameInput.trim()) {
+      setAuthError('Please enter a username.');
       return;
     }
 
-    setIsSendingOtp(true);
-    // Simulate network delay for "sending" OTP
-    setTimeout(() => {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(code);
-      setLoginStep('otp');
-      setIsSendingOtp(false);
-      // In a real frontend-only demo, we'll show the OTP in a toast or console
-      console.log(`[AUTH DEBUG] OTP for ${emailInput}: ${code}`);
-    }, 1500);
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    const enteredOtp = otpInput.join('');
-    
-    if (enteredOtp === generatedOtp) {
-      setIsAuthenticated(true);
-      setUserEmail(emailInput);
-      localStorage.setItem('auth_token', 'true');
-      localStorage.setItem('user_email', emailInput);
-      triggerConfetti();
-    } else {
-      setAuthError('Invalid OTP. Please try again.');
+    if (captchaInput.toUpperCase() !== currentCaptcha) {
+      setAuthError('Incorrect CAPTCHA. Please try again.');
+      generateCaptcha();
+      return;
     }
+
+    setIsAuthenticated(true);
+    setUserEmail(usernameInput);
+    localStorage.setItem('auth_token', 'true');
+    localStorage.setItem('user_email', usernameInput);
+    triggerConfetti();
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_email');
-    setLoginStep('email');
-    setEmailInput('');
-    setOtpInput(['', '', '', '', '', '']);
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otpInput];
-    newOtp[index] = value.slice(-1);
-    setOtpInput(newOtp);
-
-    // Auto-focus next
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otpInput[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
+    setUsernameInput('');
+    setCaptchaInput('');
+    setIsComputerOn(false);
   };
 
   const handleScreenShare = async () => {
@@ -652,7 +643,8 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 font-sans">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 font-sans relative overflow-hidden">
+        {/* Background Glows */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]" />
@@ -667,125 +659,69 @@ export default function App() {
             <div className="w-20 h-20 bg-blue-500 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-6">
               <Terminal className="text-black w-10 h-10" />
             </div>
-            <h1 className="text-3xl font-black mb-2 tracking-tight">Welcome Back</h1>
-            <p className="text-zinc-500 text-sm">Sign in to your Gmail account to continue</p>
+            <h1 className="text-3xl font-black mb-2 tracking-tight">System Login</h1>
+            <p className="text-zinc-500 text-sm">Enter credentials to access the platform</p>
           </div>
 
-          <AnimatePresence mode="wait">
-            {loginStep === 'email' ? (
-              <motion.form 
-                key="email-step"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                onSubmit={handleLogin}
-                className="space-y-6"
-              >
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Email Address</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input 
-                      type="email"
-                      required
-                      placeholder="name@gmail.com"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    />
-                  </div>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input 
+                  type="text"
+                  required
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="Enter your username"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">CAPTCHA Verification</label>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center font-mono text-xl tracking-[0.3em] text-blue-400 select-none italic line-through decoration-white/20 h-14">
+                  {currentCaptcha}
                 </div>
-
-                {authError && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
-                    <Info className="w-4 h-4" />
-                    {authError}
-                  </div>
-                )}
-
                 <button 
-                  type="submit"
-                  disabled={isSendingOtp}
-                  className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={generateCaptcha}
+                  className="p-3 bg-white/5 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-colors h-14 w-14 flex items-center justify-center"
                 >
-                  {isSendingOtp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending OTP...
-                    </>
-                  ) : (
-                    <>
-                      Send One-Time Password
-                      <ChevronRight className="w-4 h-4" />
-                    </>
-                  )}
+                  <RefreshCw className="w-5 h-5" />
                 </button>
-              </motion.form>
-            ) : (
-              <motion.form 
-                key="otp-step"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                onSubmit={handleVerifyOtp}
-                className="space-y-8"
-              >
-                <div className="text-center">
-                  <p className="text-xs text-zinc-400 mb-6">
-                    We've sent a 6-digit code to <br/>
-                    <span className="text-blue-400 font-bold">{emailInput}</span>
-                  </p>
-                  
-                  <div className="flex justify-between gap-2">
-                    {otpInput.map((digit, i) => (
-                      <input 
-                        key={i}
-                        id={`otp-${i}`}
-                        type="text"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(i, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                        className="w-12 h-16 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-black focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Debug Info for Demo */}
-                  <div className="mt-6 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-[10px] text-blue-400 font-mono">
-                    DEBUG: Your OTP is {generatedOtp}
-                  </div>
-                </div>
+              </div>
+              <input 
+                type="text"
+                required
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                placeholder="Enter CAPTCHA"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
+              />
+            </div>
 
-                {authError && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
-                    <Info className="w-4 h-4" />
-                    {authError}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <button 
-                    type="submit"
-                    className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                  >
-                    Verify & Sign In
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setLoginStep('email')}
-                    className="w-full py-2 text-zinc-500 text-xs font-bold hover:text-zinc-300 transition-colors"
-                  >
-                    Change Email Address
-                  </button>
-                </div>
-              </motion.form>
+            {authError && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                {authError}
+              </div>
             )}
-          </AnimatePresence>
+
+            <button 
+              type="submit"
+              className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2"
+            >
+              Login to Platform
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </form>
 
           <div className="mt-12 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
-              Secure Frontend Authentication
+              Secure System Access
             </p>
           </div>
         </motion.div>
