@@ -52,7 +52,9 @@ import {
   RefreshCw,
   Home,
   LogIn,
-  LogOut
+  LogOut,
+  Play,
+  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -66,10 +68,14 @@ import { format, subDays, startOfDay, isSameDay, eachDayOfInterval } from 'date-
 import confetti from 'canvas-confetti';
 import { io } from 'socket.io-client';
 import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, getGeneralizedTopicName, chatWithAI } from './services/gemini';
-import { progressService, Progress } from './services/progress';
+import { progressService, Progress, SpeedCodingStat, Problem, Challenge } from './services/progress';
 import { cn } from './lib/utils';
+import { CodingHeatmap } from './components/CodingHeatmap';
+import { ConceptVisualizer } from './components/ConceptVisualizer';
+import { SpeedCoding } from './components/SpeedCoding';
+import { SilentStudy } from './components/SilentStudy';
 
-type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about' | 'features' | 'social' | 'profile';
+type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about' | 'features' | 'social' | 'profile' | 'visualizer' | 'speed-coding' | 'silent-study';
 
 const MOTIVATIONAL_QUOTES = [
   { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
@@ -727,6 +733,46 @@ export default function App() {
     setProgress(updated);
   };
 
+  const handleSendChallenge = (friendName: string) => {
+    const challengeProblems: Problem[] = [
+      { id: 'bs-1', title: 'Binary Search', url: '#', platform: 'Internal', completed: false },
+      { id: 'tp-1', title: 'Two Pointers', url: '#', platform: 'Internal', completed: false }
+    ];
+    const updated = progressService.sendChallenge(friendName, challengeProblems, 20);
+    setProgress(updated);
+    triggerConfetti();
+  };
+
+  const handleAcceptChallenge = (challengeId: string) => {
+    const challenge = progress.challenges.find(c => c.id === challengeId);
+    if (!challenge) return;
+    const updated = progressService.receiveChallenge(challenge);
+    setProgress(updated);
+    setActiveTab('speed-coding');
+  };
+
+  const [showSilentStudy, setShowSilentStudy] = useState(false);
+  const [revisionNeeded, setRevisionNeeded] = useState<{ topicTitle: string; problem: any }[]>([]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const revision = progressService.getRevisionProblems();
+      setRevisionNeeded(revision);
+    }
+  }, [isAuthenticated, progress]);
+
+  const handleSpeedCodingComplete = (stats: { timeTaken: number; memoryUsed: number; problemsSolved: number }) => {
+    const newStat: SpeedCodingStat = {
+      challengeId: Math.random().toString(36).substr(2, 9),
+      ...stats,
+      timestamp: Date.now()
+    };
+    const updated = progressService.addSpeedCodingStat(newStat);
+    setProgress(updated);
+    triggerConfetti();
+    setActiveTab('leaderboard');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <AnimatePresence>
@@ -743,16 +789,17 @@ export default function App() {
           </span>
         </div>
         
-        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full border border-white/10">
+        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full border border-white/10 overflow-x-auto max-w-[60vw]">
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
-            { id: 'search', icon: Search, label: 'Global Search', public: false },
-            { id: 'progress', icon: BookOpen, label: 'My Roadmap', public: false },
+            { id: 'search', icon: Search, label: 'Search', public: false },
+            { id: 'progress', icon: BookOpen, label: 'Roadmap', public: false },
+            { id: 'visualizer', icon: Play, label: 'Visualizer', public: false },
+            { id: 'speed-coding', icon: Zap, label: 'Speed', public: false },
             { id: 'leaderboard', icon: Trophy, label: 'Leaderboard', public: false },
             { id: 'social', icon: Users, label: 'Social', public: false },
-            { id: 'games', icon: Zap, label: 'Games', public: false },
-            { id: 'meet', icon: Video, label: 'Dummy Meet', public: false },
             { id: 'profile', icon: User, label: 'Profile', public: false },
+            { id: 'meet', icon: Video, label: 'Meet', public: false },
             { id: 'about', icon: Info, label: 'About', public: false },
             ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
           ].map((tab) => (
@@ -760,7 +807,7 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as Tab)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all relative overflow-hidden group",
+                "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all relative overflow-hidden group whitespace-nowrap",
                 activeTab === tab.id 
                   ? "bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -781,6 +828,15 @@ export default function App() {
               )}
             </button>
           ))}
+          {isAuthenticated && (
+            <button
+              onClick={() => setShowSilentStudy(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-all whitespace-nowrap"
+            >
+              <Moon className="w-4 h-4" />
+              <span className="hidden lg:inline">Focus</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
@@ -2361,6 +2417,43 @@ export default function App() {
                                 Accept
                               </button>
                             )}
+                            {friend.status === 'accepted' && (
+                              <button 
+                                onClick={() => handleSendChallenge(friend.userName)}
+                                className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-all flex items-center gap-2"
+                              >
+                                <Zap className="w-3 h-3" />
+                                Challenge
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Active Challenges */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                      <Zap className="w-6 h-6 text-blue-500" />
+                      Active Challenges
+                    </h3>
+                    <div className="space-y-4">
+                      {progress.challenges.filter(c => c.status === 'pending').length === 0 ? (
+                        <div className="text-center py-4 text-zinc-500 text-xs italic">No active challenges.</div>
+                      ) : (
+                        progress.challenges.filter(c => c.status === 'pending').map((challenge) => (
+                          <div key={challenge.id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-bold">From: {challenge.from}</span>
+                              <span className="text-[10px] font-bold text-blue-400">{challenge.problems.length} Problems</span>
+                            </div>
+                            <button 
+                              onClick={() => handleAcceptChallenge(challenge.id)}
+                              className="w-full py-2 bg-blue-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-400 transition-all"
+                            >
+                              Accept Challenge
+                            </button>
                           </div>
                         ))
                       )}
@@ -2447,6 +2540,30 @@ export default function App() {
             </motion.div>
           )}
 
+          {activeTab === 'visualizer' && isAuthenticated && (
+            <motion.div 
+              key="visualizer"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-6xl mx-auto p-8"
+            >
+              <ConceptVisualizer />
+            </motion.div>
+          )}
+
+          {activeTab === 'speed-coding' && isAuthenticated && (
+            <motion.div 
+              key="speed-coding"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-6xl mx-auto p-8"
+            >
+              <SpeedCoding onComplete={handleSpeedCodingComplete} />
+            </motion.div>
+          )}
+
           {activeTab === 'profile' && isAuthenticated && (
             <motion.div 
               key="profile"
@@ -2499,10 +2616,32 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Revision Reminders */}
+                  {revisionNeeded.length > 0 && (
+                    <div className="glass p-8 rounded-[40px] border border-white/5 bg-red-500/5">
+                      <h3 className="text-lg font-bold mb-6 flex items-center gap-3">
+                        <RefreshCw className="w-6 h-6 text-red-500" />
+                        Smart Revision
+                      </h3>
+                      <div className="space-y-4">
+                        {revisionNeeded.slice(0, 3).map((rev, i) => (
+                          <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="text-xs font-bold text-red-400 mb-1">REVISION NEEDED</div>
+                            <div className="text-sm font-bold">{rev.problem.title}</div>
+                            <div className="text-[10px] text-zinc-500">{rev.topicTitle}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Badges & Achievements */}
                 <div className="lg:col-span-2 space-y-8">
+                  {/* Heatmap */}
+                  <CodingHeatmap data={progress.heatmap} />
+
                   <div className="glass p-8 rounded-[40px] border border-white/5">
                     <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
                       <Award className="w-8 h-8 text-blue-500" />
@@ -3410,6 +3549,11 @@ export default function App() {
             </form>
           </motion.div>
         )}
+        <AnimatePresence>
+          {showSilentStudy && (
+            <SilentStudy onClose={() => setShowSilentStudy(false)} />
+          )}
+        </AnimatePresence>
       </AnimatePresence>
     </div>
   );

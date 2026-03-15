@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 export interface Problem {
   id: string;
   title: string;
@@ -44,6 +46,24 @@ export interface Friend {
   status: 'pending' | 'accepted';
 }
 
+export interface Challenge {
+  id: string;
+  from: string;
+  problems: Problem[];
+  timeLimit: number; // in minutes
+  status: 'pending' | 'completed' | 'failed';
+  score?: number;
+  timestamp: number;
+}
+
+export interface SpeedCodingStat {
+  challengeId: string;
+  timeTaken: number;
+  memoryUsed: number;
+  problemsSolved: number;
+  timestamp: number;
+}
+
 export interface Progress {
   userName: string;
   completedTopics: string[]; // For search-based topics
@@ -62,6 +82,11 @@ export interface Progress {
   };
   activityFeed: Activity[];
   points: number;
+  // New Features
+  heatmap: { [date: string]: number }; // YYYY-MM-DD -> count
+  speedCodingStats: SpeedCodingStat[];
+  challenges: Challenge[];
+  lastRevisionCheck: number;
 }
 
 export const progressService = {
@@ -83,7 +108,11 @@ export const progressService = {
         best: 0
       },
       activityFeed: [],
-      points: 0
+      points: 0,
+      heatmap: {},
+      speedCodingStats: [],
+      challenges: [],
+      lastRevisionCheck: 0
     };
     if (!data) return defaultProgress;
     try {
@@ -335,5 +364,48 @@ export const progressService = {
       progressService.saveProgress(p);
     }
     return p;
+  },
+  updateHeatmap: (date?: string) => {
+    const p = progressService.getProgress();
+    const d = date || format(new Date(), 'yyyy-MM-dd');
+    p.heatmap[d] = (p.heatmap[d] || 0) + 1;
+    progressService.saveProgress(p);
+    return p;
+  },
+  addSpeedCodingStat: (stat: SpeedCodingStat) => {
+    const p = progressService.getProgress();
+    p.speedCodingStats.push(stat);
+    p.points += stat.problemsSolved * 100;
+    progressService.saveProgress(p);
+    return p;
+  },
+  sendChallenge: (friendName: string, problems: Problem[], timeLimit: number) => {
+    const p = progressService.getProgress();
+    // In a real app, we'd send this to the friend's account via backend
+    // For now, we'll just simulate it or add it to a "sent" list if we had one
+    return p;
+  },
+  receiveChallenge: (challenge: Challenge) => {
+    const p = progressService.getProgress();
+    p.challenges.push(challenge);
+    progressService.saveProgress(p);
+    return p;
+  },
+  getRevisionProblems: () => {
+    const p = progressService.getProgress();
+    const now = Date.now();
+    const twentyDays = 20 * 24 * 60 * 60 * 1000;
+    
+    const revisionNeeded: { topicTitle: string; problem: Problem }[] = [];
+    
+    p.customTopics.forEach(topic => {
+      topic.problems.forEach(prob => {
+        if (prob.completed && prob.completedAt && (now - prob.completedAt > twentyDays)) {
+          revisionNeeded.push({ topicTitle: topic.title, problem: prob });
+        }
+      });
+    });
+    
+    return revisionNeeded;
   }
 };
