@@ -23,12 +23,45 @@ export interface CompletionEntry {
   timestamp: number;
 }
 
+export interface Badge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlockedAt: number;
+}
+
+export interface Activity {
+  id: string;
+  type: 'problem_solved' | 'topic_completed' | 'streak_milestone' | 'friend_added' | 'referral';
+  message: string;
+  timestamp: number;
+  userName: string;
+}
+
+export interface Friend {
+  userName: string;
+  status: 'pending' | 'accepted';
+}
+
 export interface Progress {
   userName: string;
   completedTopics: string[]; // For search-based topics
   lastSearched: string[];
   customTopics: CustomTopic[];
   completionHistory: CompletionEntry[];
+  // Social & Engagement
+  referralCode: string;
+  referredFriends: string[];
+  friends: Friend[];
+  badges: Badge[];
+  streak: {
+    current: number;
+    lastActivity: number;
+    best: number;
+  };
+  activityFeed: Activity[];
+  points: number;
 }
 
 export const progressService = {
@@ -39,7 +72,18 @@ export const progressService = {
       completedTopics: [], 
       lastSearched: [], 
       customTopics: [],
-      completionHistory: []
+      completionHistory: [],
+      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      referredFriends: [],
+      friends: [],
+      badges: [],
+      streak: {
+        current: 0,
+        lastActivity: 0,
+        best: 0
+      },
+      activityFeed: [],
+      points: 0
     };
     if (!data) return defaultProgress;
     try {
@@ -57,6 +101,102 @@ export const progressService = {
   },
   saveProgress: (progress: Progress) => {
     localStorage.setItem('cs_scholar_progress', JSON.stringify(progress));
+  },
+  updateStreak: () => {
+    const p = progressService.getProgress();
+    const now = Date.now();
+    const last = p.streak.lastActivity;
+    
+    if (last === 0) {
+      p.streak.current = 1;
+      p.streak.lastActivity = now;
+    } else {
+      const diff = now - last;
+      const oneDay = 24 * 60 * 60 * 1000;
+      const twoDays = 48 * 60 * 60 * 1000;
+
+      if (diff < oneDay) {
+        // Already active today, do nothing
+      } else if (diff < twoDays) {
+        // Consecutive day
+        p.streak.current += 1;
+        p.streak.lastActivity = now;
+      } else {
+        // Streak broken
+        p.streak.current = 1;
+        p.streak.lastActivity = now;
+      }
+    }
+
+    if (p.streak.current > p.streak.best) {
+      p.streak.best = p.streak.current;
+    }
+
+    // Check for streak badges
+    if (p.streak.current === 7 && !p.badges.find(b => b.id === 'streak_7')) {
+      progressService.addBadge(p, {
+        id: 'streak_7',
+        title: 'Week Warrior',
+        description: 'Maintained a 7-day learning streak',
+        icon: 'Flame'
+      });
+    }
+
+    progressService.saveProgress(p);
+    return p;
+  },
+  addBadge: (p: Progress, badge: Omit<Badge, 'unlockedAt'>) => {
+    p.badges.push({ ...badge, unlockedAt: Date.now() });
+    p.activityFeed.unshift({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'streak_milestone',
+      message: `Unlocked the "${badge.title}" badge!`,
+      timestamp: Date.now(),
+      userName: p.userName
+    });
+  },
+  addPoints: (amount: number) => {
+    const p = progressService.getProgress();
+    p.points += amount;
+    progressService.saveProgress(p);
+    return p;
+  },
+  addFriendRequest: (friendName: string) => {
+    const p = progressService.getProgress();
+    if (!p.friends.find(f => f.userName === friendName)) {
+      p.friends.push({ userName: friendName, status: 'pending' });
+      progressService.saveProgress(p);
+    }
+    return p;
+  },
+  acceptFriendRequest: (friendName: string) => {
+    const p = progressService.getProgress();
+    p.friends = p.friends.map(f => 
+      f.userName === friendName ? { ...f, status: 'accepted' } : f
+    );
+    p.activityFeed.unshift({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'friend_added',
+      message: `Became friends with ${friendName}`,
+      timestamp: Date.now(),
+      userName: p.userName
+    });
+    progressService.saveProgress(p);
+    return p;
+  },
+  useReferral: (code: string) => {
+    const p = progressService.getProgress();
+    // In a real app, we'd verify this code on the server
+    p.points += 500;
+    p.activityFeed.unshift({
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'referral',
+      message: `Joined using referral code: ${code}`,
+      timestamp: Date.now(),
+      userName: p.userName
+    });
+    progressService.saveProgress(p);
+    return p;
   },
   setUserName: (name: string) => {
     const p = progressService.getProgress();

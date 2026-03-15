@@ -69,7 +69,19 @@ import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, 
 import { progressService, Progress } from './services/progress';
 import { cn } from './lib/utils';
 
-type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about';
+type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about' | 'features' | 'social' | 'profile';
+
+const MOTIVATIONAL_QUOTES = [
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "Everything you've ever wanted is on the other side of fear.", author: "George Addair" },
+  { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "C.S. Lewis" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Your time is limited, so don't waste it living someone else's life.", author: "Steve Jobs" },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+];
 
 const BootingLoader = () => {
   const [lines, setLines] = useState<string[]>([]);
@@ -147,6 +159,29 @@ const BootingLoader = () => {
 };
 
 const socket = io();
+
+const MotivationNotification = ({ quote, isVisible }: { quote: { text: string, author: string }, isVisible: boolean }) => (
+  <AnimatePresence>
+    {isVisible && (
+      <motion.div
+        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-6"
+      >
+        <div className="bg-zinc-900/90 backdrop-blur-xl border border-white/10 p-6 rounded-[32px] shadow-2xl flex items-start gap-4">
+          <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400 shrink-0">
+            <Lightbulb className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-zinc-200 italic mb-2 leading-relaxed">"{quote.text}"</p>
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">— {quote.author}</p>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('landing');
@@ -327,8 +362,14 @@ export default function App() {
   
   // Interactive Room State
   const [isLightOn, setIsLightOn] = useState(true);
-  const [isFanOn, setIsFanOn] = useState(false);
+  const [isACOn, setIsACOn] = useState(false);
   const [isComputerOn, setIsComputerOn] = useState(false);
+  
+  // Social & Engagement State
+  const [showMotivation, setShowMotivation] = useState(false);
+  const [currentQuote, setCurrentQuote] = useState(MOTIVATIONAL_QUOTES[0]);
+  const [referralInput, setReferralInput] = useState('');
+  const [friendInput, setFriendInput] = useState('');
   
   // Login State
   const [usernameInput, setUsernameInput] = useState('');
@@ -463,6 +504,23 @@ export default function App() {
     setUserEmail(usernameInput);
     localStorage.setItem('auth_token', 'true');
     localStorage.setItem('user_email', usernameInput);
+    
+    // Update progress with username if not set
+    const p = progressService.getProgress();
+    if (!p.userName) {
+      progressService.setUserName(usernameInput);
+    }
+    
+    // Update streak on login
+    const updatedProgress = progressService.updateStreak();
+    setProgress(updatedProgress);
+
+    // Show motivational quote
+    const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+    setCurrentQuote(randomQuote);
+    setShowMotivation(true);
+    setTimeout(() => setShowMotivation(false), 8000);
+
     triggerConfetti();
     // Redirect to landing page (which will now show the hero section)
     setActiveTab('landing');
@@ -475,6 +533,7 @@ export default function App() {
     setUsernameInput('');
     setCaptchaInput('');
     setIsComputerOn(false);
+    setIsACOn(false);
     setIsMeetActive(false);
     setActiveTab('landing');
   };
@@ -648,6 +707,26 @@ export default function App() {
     }
   };
 
+  const handleUseReferral = () => {
+    if (!referralInput.trim()) return;
+    const updated = progressService.useReferral(referralInput);
+    setProgress(updated);
+    setReferralInput('');
+    triggerConfetti();
+  };
+
+  const handleSendFriendRequest = () => {
+    if (!friendInput.trim()) return;
+    const updated = progressService.addFriendRequest(friendInput);
+    setProgress(updated);
+    setFriendInput('');
+  };
+
+  const handleAcceptFriend = (name: string) => {
+    const updated = progressService.acceptFriendRequest(name);
+    setProgress(updated);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <AnimatePresence>
@@ -670,9 +749,11 @@ export default function App() {
             { id: 'search', icon: Search, label: 'Global Search', public: false },
             { id: 'progress', icon: BookOpen, label: 'My Roadmap', public: false },
             { id: 'leaderboard', icon: Trophy, label: 'Leaderboard', public: false },
+            { id: 'social', icon: Users, label: 'Social', public: false },
             { id: 'games', icon: Zap, label: 'Games', public: false },
             { id: 'meet', icon: Video, label: 'Dummy Meet', public: false },
-            { id: 'about', icon: User, label: 'Portfolio', public: false },
+            { id: 'profile', icon: User, label: 'Profile', public: false },
+            { id: 'about', icon: Info, label: 'About', public: false },
             ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
           ].map((tab) => (
             <button
@@ -777,38 +858,54 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Fan Switch */}
+                    {/* AC Switch */}
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fan</span>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">AC</span>
                       <button 
-                        onClick={() => setIsFanOn(!isFanOn)}
+                        onClick={() => setIsACOn(!isACOn)}
                         className={cn(
                           "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
-                          isFanOn ? "bg-emerald-400 border-emerald-500" : "bg-zinc-800 border-zinc-700"
+                          isACOn ? "bg-blue-400 border-blue-500" : "bg-zinc-800 border-zinc-700"
                         )}
                       >
                         <div className={cn(
                           "w-full h-1/2 rounded-lg transition-all",
-                          isFanOn ? "bg-emerald-200 translate-y-full" : "bg-zinc-700"
+                          isACOn ? "bg-blue-200 translate-y-full" : "bg-zinc-700"
                         )} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Fan (Ceiling) */}
-                  <div className="absolute top-10 right-40 z-10">
-                    <motion.div 
-                      animate={{ rotate: isFanOn ? 360 : 0 }}
-                      transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-                      className={cn(
-                        "relative w-48 h-48 flex items-center justify-center transition-opacity",
-                        !isFanOn && "rotate-0"
+                  {/* AC (Wall Mounted) */}
+                  <div className="absolute top-10 right-20 z-10">
+                    <div className={cn(
+                      "relative w-64 h-20 bg-zinc-200 rounded-lg shadow-xl border-b-4 border-zinc-300 transition-all duration-500",
+                      !isLightOn && "brightness-50"
+                    )}>
+                      {/* AC Display */}
+                      <div className="absolute top-4 right-4 w-12 h-6 bg-black/80 rounded flex items-center justify-center font-mono text-[10px] text-emerald-400">
+                        {isACOn ? "22°C" : "--"}
+                      </div>
+                      {/* AC Flap */}
+                      <motion.div 
+                        animate={{ rotateX: isACOn ? 45 : 0 }}
+                        className="absolute bottom-0 left-0 w-full h-2 bg-zinc-300 origin-top"
+                      />
+                      {/* Air Flow Animation */}
+                      {isACOn && (
+                        <div className="absolute -bottom-12 left-0 w-full flex justify-around pointer-events-none">
+                          {[1, 2, 3].map(i => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, y: 0 }}
+                              animate={{ opacity: [0, 0.5, 0], y: [0, 20, 40] }}
+                              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.5 }}
+                              className="w-px h-8 bg-blue-400/30 blur-sm"
+                            />
+                          ))}
+                        </div>
                       )}
-                    >
-                      <div className="absolute w-4 h-4 bg-zinc-700 rounded-full z-10" />
-                      <div className="absolute w-40 h-4 bg-zinc-600 rounded-full" />
-                      <div className="absolute w-4 h-40 bg-zinc-600 rounded-full" />
-                    </motion.div>
+                    </div>
                   </div>
 
                   {/* Computer Setup */}
@@ -842,7 +939,11 @@ export default function App() {
                                 <form onSubmit={handleLogin} className="space-y-4">
                                   <div className="space-y-1.5">
                                     <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
-                                    <div className="relative">
+                                    <motion.div 
+                                      whileHover={{ scale: 1.02 }}
+                                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                      className="relative"
+                                    >
                                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                                       <input 
                                         type="text"
@@ -850,9 +951,9 @@ export default function App() {
                                         value={usernameInput}
                                         onChange={(e) => setUsernameInput(e.target.value)}
                                         placeholder="Enter username"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all"
                                       />
-                                    </div>
+                                    </motion.div>
                                   </div>
 
                                   <div className="space-y-1.5">
@@ -869,13 +970,16 @@ export default function App() {
                                         <RefreshCw className="w-4 h-4" />
                                       </button>
                                     </div>
-                                    <input 
+                                    <motion.input 
+                                      whileHover={{ scale: 1.02 }}
+                                      whileFocus={{ scale: 1.02 }}
+                                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                       type="text"
                                       required
                                       value={captchaInput}
                                       onChange={(e) => setCaptchaInput(e.target.value)}
                                       placeholder="Enter code"
-                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
+                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all uppercase"
                                     />
                                   </div>
 
@@ -966,7 +1070,7 @@ export default function App() {
                           <ChevronRight className="w-5 h-5" />
                         </button>
                         <button 
-                          onClick={() => setActiveTab('about')}
+                          onClick={() => setActiveTab('features')}
                           className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl font-black text-lg hover:bg-white/10 transition-all active:scale-95"
                         >
                           Explore Features
@@ -1047,37 +1151,54 @@ export default function App() {
                     </button>
                   </div>
 
+                  {/* AC Switch */}
                   <div className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fan</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">AC</span>
                     <button 
-                      onClick={() => setIsFanOn(!isFanOn)}
+                      onClick={() => setIsACOn(!isACOn)}
                       className={cn(
                         "w-12 h-20 rounded-xl border-4 transition-all flex flex-col p-1",
-                        isFanOn ? "bg-emerald-400 border-emerald-500" : "bg-zinc-800 border-zinc-700"
+                        isACOn ? "bg-blue-400 border-blue-500" : "bg-zinc-800 border-zinc-700"
                       )}
                     >
                       <div className={cn(
                         "w-full h-1/2 rounded-lg transition-all",
-                        isFanOn ? "bg-emerald-200 translate-y-full" : "bg-zinc-700"
+                        isACOn ? "bg-blue-200 translate-y-full" : "bg-zinc-700"
                       )} />
                     </button>
                   </div>
                 </div>
 
-                {/* Fan (Ceiling) */}
-                <div className="absolute top-10 right-40 z-10">
-                  <motion.div 
-                    animate={{ rotate: isFanOn ? 360 : 0 }}
-                    transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-                    className={cn(
-                      "relative w-48 h-48 flex items-center justify-center transition-opacity",
-                      !isFanOn && "rotate-0"
+                {/* AC (Wall Mounted) */}
+                <div className="absolute top-10 right-20 z-10">
+                  <div className={cn(
+                    "relative w-64 h-20 bg-zinc-200 rounded-lg shadow-xl border-b-4 border-zinc-300 transition-all duration-500",
+                    !isLightOn && "brightness-50"
+                  )}>
+                    {/* AC Display */}
+                    <div className="absolute top-4 right-4 w-12 h-6 bg-black/80 rounded flex items-center justify-center font-mono text-[10px] text-emerald-400">
+                      {isACOn ? "22°C" : "--"}
+                    </div>
+                    {/* AC Flap */}
+                    <motion.div 
+                      animate={{ rotateX: isACOn ? 45 : 0 }}
+                      className="absolute bottom-0 left-0 w-full h-2 bg-zinc-300 origin-top"
+                    />
+                    {/* Air Flow Animation */}
+                    {isACOn && (
+                      <div className="absolute -bottom-12 left-0 w-full flex justify-around pointer-events-none">
+                        {[1, 2, 3].map(i => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 0 }}
+                            animate={{ opacity: [0, 0.5, 0], y: [0, 20, 40] }}
+                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.5 }}
+                            className="w-px h-8 bg-blue-400/30 blur-sm"
+                          />
+                        ))}
+                      </div>
                     )}
-                  >
-                    <div className="absolute w-4 h-4 bg-zinc-700 rounded-full z-10" />
-                    <div className="absolute w-40 h-4 bg-zinc-600 rounded-full" />
-                    <div className="absolute w-4 h-40 bg-zinc-600 rounded-full" />
-                  </motion.div>
+                  </div>
                 </div>
 
                 {/* Computer Setup */}
@@ -1109,7 +1230,11 @@ export default function App() {
                               <form onSubmit={handleLogin} className="space-y-4">
                                 <div className="space-y-1.5">
                                   <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
-                                  <div className="relative">
+                                  <motion.div 
+                                    whileHover={{ scale: 1.02 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                    className="relative"
+                                  >
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                                     <input 
                                       type="text"
@@ -1117,9 +1242,9 @@ export default function App() {
                                       value={usernameInput}
                                       onChange={(e) => setUsernameInput(e.target.value)}
                                       placeholder="Enter username"
-                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all"
                                     />
-                                  </div>
+                                  </motion.div>
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -1136,13 +1261,16 @@ export default function App() {
                                       <RefreshCw className="w-4 h-4" />
                                     </button>
                                   </div>
-                                  <input 
+                                  <motion.input 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileFocus={{ scale: 1.02 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                     type="text"
                                     required
                                     value={captchaInput}
                                     onChange={(e) => setCaptchaInput(e.target.value)}
                                     placeholder="Enter code"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all uppercase"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all uppercase"
                                   />
                                 </div>
 
@@ -1192,6 +1320,82 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'features' && (
+            <motion.div
+              key="features"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="max-w-6xl mx-auto px-6 py-24"
+            >
+              <button 
+                onClick={() => setActiveTab('landing')}
+                className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-12 group"
+              >
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                Back to Home
+              </button>
+
+              <div className="text-center mb-20">
+                <h1 className="text-6xl font-black mb-6 tracking-tight">Explore Our <span className="text-blue-500">Features</span></h1>
+                <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
+                  AI Vidyapeettham is a comprehensive platform designed to revolutionize how you learn and practice computer science.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {[
+                  {
+                    title: "Roadmap Learning System",
+                    desc: "Our AI generates personalized, step-by-step learning paths for any CS topic. From Data Structures to Machine Learning, get a clear visual roadmap with curated resources.",
+                    icon: BookOpen,
+                    color: "bg-blue-500/20 text-blue-400"
+                  },
+                  {
+                    title: "Problem Searching & Practice",
+                    desc: "Search for specific coding problems or concepts. Our system fetches relevant challenges from top platforms like LeetCode and GeeksforGeeks for you to practice.",
+                    icon: Search,
+                    color: "bg-emerald-500/20 text-emerald-400"
+                  },
+                  {
+                    title: "Leaderboard & Gamification",
+                    desc: "Stay motivated with our global ranking system. Earn points by completing topics and solving problems. Compete with peers and climb the leaderboard.",
+                    icon: Trophy,
+                    color: "bg-yellow-500/20 text-yellow-400"
+                  },
+                  {
+                    title: "Games Section",
+                    desc: "Learn while having fun! Our games section includes logic puzzles and coding-themed games like 2048 to keep your mind sharp.",
+                    icon: Zap,
+                    color: "bg-purple-500/20 text-purple-400"
+                  },
+                  {
+                    title: "Dummy Seminar Environment",
+                    desc: "Experience a virtual classroom with AI-simulated students. Practice teaching or presenting concepts in an interactive environment that reacts to your input.",
+                    icon: Video,
+                    color: "bg-red-500/20 text-red-400"
+                  }
+                ].map((feature, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="p-8 glass rounded-[40px] border border-white/10 flex flex-col items-start gap-6"
+                  >
+                    <div className={cn("p-4 rounded-2xl", feature.color)}>
+                      <feature.icon className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
+                      <p className="text-zinc-400 leading-relaxed">{feature.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
@@ -1911,7 +2115,13 @@ export default function App() {
                           </div>
                           <div>
                             <div className="text-xs font-bold">{user.name}</div>
-                            <div className="text-[10px] text-zinc-500">{user.points} pts</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-[10px] text-zinc-500">{user.points} pts</div>
+                              <div className="text-[10px] text-yellow-500 flex items-center gap-0.5">
+                                <Flame className="w-3 h-3" />
+                                {user.email === userEmail ? progress.streak.current : Math.floor(Math.random() * 10) + 1}d
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div className={cn(
@@ -2039,6 +2249,312 @@ export default function App() {
                         );
                       })
                     )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'social' && isAuthenticated && (
+            <motion.div 
+              key="social"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-6xl mx-auto p-8"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Friends & Referrals */}
+                <div className="space-y-8">
+                  {/* Referral Section */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400">
+                        <Share2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold">Refer a Friend</h3>
+                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Earn 500 points each</p>
+                      </div>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-6 flex items-center justify-between">
+                      <span className="font-mono text-lg font-bold text-blue-400 tracking-widest">{progress.referralCode}</span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(progress.referralCode);
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-all"
+                      >
+                        <Download className="w-4 h-4 text-zinc-500" />
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Use a Code</div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={referralInput}
+                          onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
+                          placeholder="ENTER CODE"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <button 
+                          onClick={handleUseReferral}
+                          className="px-4 py-2 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Friends Section */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-xl font-bold flex items-center gap-3">
+                        <Users className="w-6 h-6 text-blue-500" />
+                        Friends
+                      </h3>
+                      <div className="text-xs font-bold text-zinc-500 bg-white/5 px-3 py-1 rounded-full">
+                        {progress.friends.filter(f => f.status === 'accepted').length} Connected
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8">
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={friendInput}
+                          onChange={(e) => setFriendInput(e.target.value)}
+                          placeholder="Friend's Username"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <button 
+                          onClick={handleSendFriendRequest}
+                          className="p-2 bg-blue-500 text-black rounded-xl hover:bg-blue-400 transition-all"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {progress.friends.length === 0 ? (
+                        <div className="text-center py-8 text-zinc-500 text-sm italic">No friends yet. Start connecting!</div>
+                      ) : (
+                        progress.friends.map((friend, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
+                                <User className="w-5 h-5 text-zinc-500" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold">{friend.userName}</div>
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{friend.status}</div>
+                              </div>
+                            </div>
+                            {friend.status === 'pending' && (
+                              <button 
+                                onClick={() => handleAcceptFriend(friend.userName)}
+                                className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/30 transition-all"
+                              >
+                                Accept
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Weekly Challenges */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-purple-500/5">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                      <Trophy className="w-6 h-6 text-purple-500" />
+                      Weekly Challenges
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-bold">Code Master</span>
+                          <span className="text-[10px] font-bold text-purple-400">500 XP</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mb-3">Solve 5 problems this week</p>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 w-[60%]" />
+                        </div>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-bold">Topic Explorer</span>
+                          <span className="text-[10px] font-bold text-purple-400">300 XP</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mb-3">Complete 2 new topics</p>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 w-[0%]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Activity Feed */}
+                <div className="lg:col-span-2 glass p-8 rounded-[40px] border border-white/5">
+                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
+                    <Activity className="w-8 h-8 text-blue-500" />
+                    Activity Feed
+                  </h3>
+                  <div className="space-y-6">
+                    {progress.activityFeed.length === 0 ? (
+                      <div className="text-center py-20 text-zinc-500">
+                        <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>No activity yet. Start learning to see updates!</p>
+                      </div>
+                    ) : (
+                      progress.activityFeed.map((activity, i) => (
+                        <motion.div 
+                          key={activity.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex gap-4 p-4 hover:bg-white/5 rounded-3xl transition-all border border-transparent hover:border-white/5 group"
+                        >
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
+                            activity.type === 'problem_solved' ? "bg-emerald-500/20 text-emerald-400" :
+                            activity.type === 'topic_completed' ? "bg-blue-500/20 text-blue-400" :
+                            activity.type === 'streak_milestone' ? "bg-yellow-500/20 text-yellow-400" :
+                            "bg-purple-500/20 text-purple-400"
+                          )}>
+                            {activity.type === 'problem_solved' ? <Code2 className="w-6 h-6" /> :
+                             activity.type === 'topic_completed' ? <BookOpen className="w-6 h-6" /> :
+                             activity.type === 'streak_milestone' ? <Award className="w-6 h-6" /> :
+                             <Users className="w-6 h-6" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{activity.userName}</span>
+                              <span className="text-[10px] text-zinc-500 font-mono">{format(activity.timestamp, 'HH:mm')}</span>
+                            </div>
+                            <p className="text-sm text-zinc-400 leading-relaxed">{activity.message}</p>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'profile' && isAuthenticated && (
+            <motion.div 
+              key="profile"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-6xl mx-auto p-8"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* User Info Card */}
+                <div className="lg:col-span-1 space-y-8">
+                  <div className="glass p-8 rounded-[40px] border border-white/5 text-center">
+                    <div className="w-32 h-32 rounded-[32px] bg-blue-500 mx-auto mb-6 flex items-center justify-center shadow-[0_0_50px_rgba(59,130,246,0.3)]">
+                      <User className="w-16 h-16 text-black" />
+                    </div>
+                    <h2 className="text-3xl font-black mb-2">{progress.userName || userEmail.split('@')[0]}</h2>
+                    <p className="text-zinc-500 text-sm mb-8">{userEmail}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="text-2xl font-black text-blue-400">{progress.points}</div>
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Points</div>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="text-2xl font-black text-yellow-500">{progress.streak.current}</div>
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Streak</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Streak Stats */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-yellow-500/5">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-3">
+                      <Flame className="w-6 h-6 text-yellow-500" />
+                      Streak Analytics
+                    </h3>
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-zinc-400">Current Streak</span>
+                        <span className="text-xl font-black text-yellow-500">{progress.streak.current} Days</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-zinc-400">Best Streak</span>
+                        <span className="text-xl font-black text-blue-400">{progress.streak.best} Days</span>
+                      </div>
+                      <div className="pt-4 border-t border-white/5">
+                        <div className="text-xs text-zinc-500 italic">
+                          Keep learning every day to maintain your streak! Missing a day will reset it.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badges & Achievements */}
+                <div className="lg:col-span-2 space-y-8">
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
+                      <Award className="w-8 h-8 text-blue-500" />
+                      Achievements & Badges
+                    </h3>
+                    
+                    {progress.badges.length === 0 ? (
+                      <div className="text-center py-20 text-zinc-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                        <Award className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>No badges unlocked yet. Keep pushing!</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                        {progress.badges.map((badge, i) => (
+                          <motion.div 
+                            key={badge.id}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="p-6 bg-white/5 rounded-[32px] border border-white/5 text-center group hover:bg-blue-500/5 transition-all"
+                          >
+                            <div className="w-16 h-16 bg-blue-500/20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                              {badge.icon === 'Flame' ? <Flame className="w-8 h-8" /> : <Award className="w-8 h-8" />}
+                            </div>
+                            <h4 className="font-bold text-sm mb-1">{badge.title}</h4>
+                            <p className="text-[10px] text-zinc-500 leading-tight">{badge.description}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-6">Recent Milestones</h3>
+                    <div className="space-y-4">
+                      {progress.completionHistory.slice(-5).reverse().map((h, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                          <div className={cn(
+                            "p-2 rounded-lg",
+                            h.type === 'topic' ? "bg-blue-500/20 text-blue-400" : "bg-emerald-500/20 text-emerald-400"
+                          )}>
+                            {h.type === 'topic' ? <BookOpen className="w-4 h-4" /> : <Code2 className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-bold">{h.title}</div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{h.type} completed</div>
+                          </div>
+                          <div className="text-[10px] font-mono text-zinc-500">{format(h.timestamp, 'MMM d')}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
