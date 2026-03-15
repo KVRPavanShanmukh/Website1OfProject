@@ -54,7 +54,8 @@ import {
   LogIn,
   LogOut,
   Play,
-  Moon
+  Moon,
+  LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -74,8 +75,9 @@ import { CodingHeatmap } from './components/CodingHeatmap';
 import { ConceptVisualizer } from './components/ConceptVisualizer';
 import { SpeedCoding } from './components/SpeedCoding';
 import { SilentStudy } from './components/SilentStudy';
+import { ConceptGraph } from './components/ConceptGraph';
 
-type Tab = 'landing' | 'login' | 'search' | 'progress' | 'meet' | 'leaderboard' | 'games' | 'about' | 'features' | 'social' | 'profile' | 'visualizer' | 'speed-coding' | 'silent-study';
+type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'visualizer' | 'speed-coding' | 'silent-study';
 
 const MOTIVATIONAL_QUOTES = [
   { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
@@ -376,6 +378,12 @@ export default function App() {
   const [currentQuote, setCurrentQuote] = useState(MOTIVATIONAL_QUOTES[0]);
   const [referralInput, setReferralInput] = useState('');
   const [friendInput, setFriendInput] = useState('');
+  const [friends, setFriends] = useState([
+    { name: 'Alice Chen', email: 'alice@example.com', status: 'online' },
+    { name: 'Bob Smith', email: 'bob@example.com', status: 'offline' },
+    { name: 'Charlie Day', email: 'charlie@example.com', status: 'online' },
+    { name: 'Diana Prince', email: 'diana@example.com', status: 'online' },
+  ]);
   
   // Login State
   const [usernameInput, setUsernameInput] = useState('');
@@ -637,14 +645,14 @@ export default function App() {
       const updatedProgress = progressService.addCustomTopic(generalizedName, challenges);
       setProgress(updatedProgress);
       
-      // Automatically expand the new topic and switch to roadmap tab
+      // Automatically expand the new topic and switch to search tab (where roadmap is)
       const newTopic = updatedProgress.customTopics[updatedProgress.customTopics.length - 1];
       if (newTopic) setExpandedTopics(prev => [...prev, newTopic.id]);
-      setActiveTab('progress');
+      setActiveTab('search');
     } catch (error) {
       console.error("Failed to add search topic to roadmap:", error);
       setProgress(progressService.addCustomTopic(searchQuery));
-      setActiveTab('progress');
+      setActiveTab('search');
     } finally {
       setIsAddingTopic(false);
     }
@@ -770,7 +778,7 @@ export default function App() {
     const updated = progressService.addSpeedCodingStat(newStat);
     setProgress(updated);
     triggerConfetti();
-    setActiveTab('leaderboard');
+    setActiveTab('dashboard');
   };
 
   return (
@@ -793,12 +801,9 @@ export default function App() {
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
             { id: 'search', icon: Search, label: 'Search', public: false },
-            { id: 'progress', icon: BookOpen, label: 'Roadmap', public: false },
             { id: 'visualizer', icon: Play, label: 'Visualizer', public: false },
             { id: 'speed-coding', icon: Zap, label: 'Speed', public: false },
-            { id: 'leaderboard', icon: Trophy, label: 'Leaderboard', public: false },
-            { id: 'social', icon: Users, label: 'Social', public: false },
-            { id: 'profile', icon: User, label: 'Profile', public: false },
+            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', public: false },
             { id: 'meet', icon: Video, label: 'Meet', public: false },
             { id: 'about', icon: Info, label: 'About', public: false },
             ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
@@ -1462,473 +1467,255 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto px-6 py-12"
+              className="max-w-6xl mx-auto px-6 py-12"
             >
-              <div className="text-center mb-12">
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6"
-                >
-                  <Zap className="w-3 h-3 fill-current" />
-                  AI-Powered Global Learning
-                </motion.div>
-                <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight">
-                  Master Any <span className="text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">CS Concept</span>
-                </h1>
-                <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-                  Fetch the best resources from across the globe. 
-                  Get the most efficient path to expertise, instantly.
-                </p>
-              </div>
-
-              <form onSubmit={handleSearch} className="relative mb-12 group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Enter a concept (e.g., Dynamic Programming, Kubernetes, Rust Ownership...)"
-                    className="w-full h-16 bg-zinc-900 border border-white/10 rounded-2xl px-6 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={isSearching}
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-blue-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isSearching ? (
-                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        Search
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              {searchResults && (
-                <div className="space-y-8">
+              {/* Search Section */}
+              <div className="max-w-4xl mx-auto mb-20">
+                <div className="text-center mb-12">
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass rounded-3xl p-8 relative overflow-hidden"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6"
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                      <Globe className="w-32 h-32 text-blue-500" />
-                    </div>
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2 text-blue-400">
-                        <Globe className="w-5 h-5" />
-                        <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
-                      </div>
-                      <button
-                        onClick={handleAddSearchTopicToRoadmap}
-                        disabled={isAddingTopic}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-black transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        {isAddingTopic ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Plus className="w-3 h-3" />
-                        )}
-                        Add problems to roadmap
-                      </button>
-                    </div>
-                    <div className="prose prose-invert max-w-none relative z-10">
-                      <Markdown>{searchResults.text}</Markdown>
-                    </div>
+                    <Zap className="w-3 h-3 fill-current" />
+                    AI-Powered Global Learning
                   </motion.div>
-
-                  {searchResults.sources.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {searchResults.sources.map((source, i) => (
-                        <motion.a 
-                          key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          href={source.uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group p-4 glass rounded-2xl hover:bg-white/10 transition-all border border-white/5 hover:border-blue-500/30"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-bold text-blue-400 group-hover:underline truncate flex-1">
-                              {source.title}
-                            </h3>
-                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400" />
-                          </div>
-                          <p className="text-xs text-zinc-500 line-clamp-2">{source.uri}</p>
-                        </motion.a>
-                      ))}
-                    </div>
-                  )}
+                  <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight">
+                    Master Any <span className="text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">CS Concept</span>
+                  </h1>
+                  <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+                    Fetch the best resources from across the globe. 
+                    Get the most efficient path to expertise, instantly.
+                  </p>
                 </div>
-              )}
 
-              {!searchResults && progress.lastSearched.length > 0 && (
-                <div className="mt-12">
-                  <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    Recent Searches
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {progress.lastSearched.map((s, i) => (
-                      <button 
-                        key={i}
-                        onClick={() => { setSearchQuery(s); }}
-                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 hover:border-blue-500/30 transition-all"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'progress' && isAuthenticated && (
-            <motion.div 
-              key="progress"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="max-w-4xl mx-auto px-6 py-12"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                <div className="lg:col-span-2 glass rounded-3xl p-8 relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-3xl font-black mb-2">My Roadmap</h2>
-                      <p className="text-zinc-400 text-sm">Track your progress and earn your certificate.</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-5xl font-black text-blue-400">{currentProgress}%</div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Complete</div>
-                    </div>
-                  </div>
-                  
-                  <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 mb-8">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${currentProgress}%` }}
-                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                <form onSubmit={handleSearch} className="relative mb-12 group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Enter a concept (e.g., Dynamic Programming, Kubernetes, Rust Ownership...)"
+                      className="w-full h-16 bg-zinc-900 border border-white/10 rounded-2xl px-6 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
                     />
-                  </div>
-
-                  <div className="h-[120px] w-full mb-8 opacity-50 hover:opacity-100 transition-opacity">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={Array.from({ length: 7 }).map((_, i) => {
-                        const date = subDays(new Date(), 6 - i);
-                        const count = progress.completionHistory.filter(h => isSameDay(new Date(h.timestamp), date)).length;
-                        return { name: format(date, 'EEE'), count };
-                      })}>
-                        <defs>
-                          <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <Area type="monotone" dataKey="count" stroke="#3b82f6" fillOpacity={1} fill="url(#colorProgress)" strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <form onSubmit={handleSearch} className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <input 
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search & add topics (e.g., DP, LeetCode, Graphs)..."
-                        disabled={isSearching}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50"
-                      />
-                      {isSearching && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                        </div>
-                      )}
-                    </div>
                     <button 
                       type="submit"
                       disabled={isSearching}
-                      className="p-3 bg-blue-500 text-black rounded-xl hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
+                      className="absolute right-2 top-2 bottom-2 px-6 bg-blue-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
                     >
-                      <Search className="w-5 h-5" />
+                      {isSearching ? (
+                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Search
+                        </>
+                      )}
                     </button>
-                  </form>
-                </div>
+                  </div>
+                </form>
 
-                <div className="glass rounded-3xl p-8 flex flex-col justify-between border-blue-500/20">
-                  <div>
-                    <div className="flex items-center gap-2 text-blue-400 mb-4">
-                      <User className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Profile</span>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">Your Name</label>
-                        <input 
-                          type="text"
-                          value={userNameInput}
-                          onChange={(e) => setUserNameInput(e.target.value)}
-                          placeholder="Enter your name..."
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        />
+                {searchResults && (
+                  <div className="space-y-8">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="glass rounded-3xl p-8 relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Globe className="w-32 h-32 text-blue-500" />
                       </div>
-                      <button 
-                        onClick={handleSaveName}
-                        className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold transition-all"
-                      >
-                        Save Profile
-                      </button>
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2 text-blue-400">
+                          <Globe className="w-5 h-5" />
+                          <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
+                        </div>
+                        <button
+                          onClick={handleAddSearchTopicToRoadmap}
+                          disabled={isAddingTopic}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-black transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isAddingTopic ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Plus className="w-3 h-3" />
+                          )}
+                          Add problems to roadmap
+                        </button>
+                      </div>
+                      <div className="prose prose-invert max-w-none relative z-10">
+                        <Markdown>{searchResults.text}</Markdown>
+                      </div>
+                    </motion.div>
+
+                    {searchResults.sources.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {searchResults.sources.map((source, i) => (
+                          <motion.a 
+                            key={i}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            href={source.uri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group p-4 glass rounded-2xl hover:bg-white/10 transition-all border border-white/5 hover:border-blue-500/30"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-bold text-blue-400 group-hover:underline truncate flex-1">
+                                {source.title}
+                              </h3>
+                              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400" />
+                            </div>
+                            <p className="text-xs text-zinc-500 line-clamp-2">{source.uri}</p>
+                          </motion.a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!searchResults && progress.lastSearched.length > 0 && (
+                  <div className="mt-12">
+                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-orange-500" />
+                      Recent Searches
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {progress.lastSearched.map((s, i) => (
+                        <button 
+                          key={i}
+                          onClick={() => { setSearchQuery(s); }}
+                          className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 hover:border-blue-500/30 transition-all"
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  
-                  <div className="mt-6 pt-6 border-t border-white/10">
-                    <div className="flex items-center justify-between text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
-                      <span>Achievement</span>
-                      <Star className="w-3 h-3 text-yellow-500" />
+                )}
+              </div>
+
+              {/* Concept Dependency Graph */}
+              <div className="mb-20 pt-20 border-t border-white/5">
+                <ConceptGraph completedTopics={progress.completedTopics} />
+              </div>
+
+              {/* Roadmap Section */}
+              <div className="pt-20 border-t border-white/5">
+                <div className="flex items-center justify-between mb-12">
+                  <div>
+                    <h2 className="text-4xl font-black mb-2">My Learning Roadmap</h2>
+                    <p className="text-zinc-400">Your personalized path to mastery.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-5xl font-black text-blue-400">{currentProgress}%</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Complete</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                  <div className="lg:col-span-2 glass rounded-3xl p-8 relative overflow-hidden">
+                    <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 mb-8">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${currentProgress}%` }}
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                      />
                     </div>
-                    <p className="text-[10px] text-zinc-500 italic">Reach 100% to unlock your professional certificate.</p>
+
+                    <div className="space-y-6">
+                      {progress.customTopics.length === 0 ? (
+                        <div className="text-center py-20 text-zinc-500">
+                          <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                          <p>No topics in your roadmap yet. Search for concepts to add them!</p>
+                        </div>
+                      ) : (
+                        progress.customTopics.map((topic, i) => (
+                          <div key={topic.id} className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="font-bold text-lg">{topic.title}</h3>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                  {topic.problems.filter(p => p.completed).length} / {topic.problems.length} Problems
+                                </span>
+                                {topic.completed && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {topic.problems.map(prob => (
+                                <div key={prob.id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                  <div className="flex items-center gap-3">
+                                    <button 
+                                      onClick={() => {
+                                        const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
+                                        setProgress(newProgress);
+                                      }}
+                                      className={cn(
+                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                        prob.completed ? "bg-emerald-500 border-emerald-500" : "border-white/20 hover:border-blue-500"
+                                      )}
+                                    >
+                                      {prob.completed && <CheckCircle2 className="w-3 h-3 text-black" />}
+                                    </button>
+                                    <span className={cn("text-sm", prob.completed ? "text-zinc-500 line-through" : "text-zinc-300")}>
+                                      {prob.title}
+                                    </span>
+                                  </div>
+                                  <a href={prob.url} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-white/10 rounded-lg transition-all">
+                                    <ExternalLink className="w-3 h-3 text-zinc-500" />
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="glass rounded-3xl p-8 border-blue-500/20">
+                      <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-6">Learning Activity</h3>
+                      <div className="h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={Array.from({ length: 7 }).map((_, i) => {
+                            const date = subDays(new Date(), 6 - i);
+                            const count = progress.completionHistory.filter(h => isSameDay(new Date(h.timestamp), date)).length;
+                            return { name: format(date, 'EEE'), count };
+                          })}>
+                            <defs>
+                              <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <Area type="monotone" dataKey="count" stroke="#3b82f6" fillOpacity={1} fill="url(#colorProgress)" strokeWidth={2} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div className="glass rounded-3xl p-8 border-yellow-500/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Achievement</span>
+                        <Star className="w-4 h-4 text-yellow-500" />
+                      </div>
+                      <p className="text-xs text-zinc-400 italic leading-relaxed">
+                        Complete your roadmap to unlock a verified professional certificate and showcase your expertise.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              <div className="space-y-8">
-                {searchResults && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass rounded-3xl p-8 relative overflow-hidden border border-blue-500/20"
-                  >
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2 text-blue-400">
-                        <Globe className="w-5 h-5" />
-                        <span className="text-sm font-bold uppercase tracking-widest">Global Insights</span>
-                      </div>
-                      <button
-                        onClick={handleAddSearchTopicToRoadmap}
-                        disabled={isAddingTopic}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        {isAddingTopic ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Plus className="w-3 h-3" />
-                        )}
-                        Add to Roadmap
-                      </button>
-                    </div>
-                    <div className="prose prose-invert max-w-none relative z-10 text-sm">
-                      <Markdown>{searchResults.text}</Markdown>
-                    </div>
-                  </motion.div>
-                )}
 
-                {progress.customTopics.length === 0 ? (
-                  <div className="p-12 text-center glass rounded-3xl border-dashed border-2 border-white/10">
-                    <BookOpen className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-                    <p className="text-zinc-500">Add topics you want to study to start your roadmap.</p>
-                  </div>
-                ) : (
-                  progress.customTopics.map((topic, i) => {
-                    const isExpanded = expandedTopics.includes(topic.id);
-                    const showAll = showMoreProblems[topic.id] || false;
-                    const bestResource = topic.problems.find(p => p.category === 'best');
-                    const interviewQuestions = topic.problems.filter(p => p.category === 'interview');
-                    const relatedProblems = topic.problems.filter(p => p.category === 'related');
-                    const visibleRelated = showAll ? relatedProblems : relatedProblems.slice(0, 10);
 
-                    return (
-                      <motion.div 
-                        key={topic.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn(
-                          "glass rounded-2xl border transition-all overflow-hidden",
-                          topic.completed ? "border-blue-500/30 bg-blue-500/5" : "border-white/5"
-                        )}
-                      >
-                        <div className="flex items-center justify-between p-6 group">
-                          <div className="flex items-center gap-4">
-                            <button 
-                              onClick={() => setProgress(progressService.toggleCustomTopic(topic.id))}
-                              className="transition-transform active:scale-90"
-                            >
-                              {topic.completed ? (
-                                <CheckCircle2 className="w-8 h-8 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                              ) : (
-                                <Circle className="w-8 h-8 text-zinc-700 hover:text-zinc-500" />
-                              )}
-                            </button>
-                            <button 
-                              onClick={() => toggleTopicExpansion(topic.id)}
-                              className="flex items-center gap-3 text-left"
-                            >
-                              {isExpanded ? (
-                                <FolderOpen className="w-5 h-5 text-blue-400" />
-                              ) : (
-                                <Folder className="w-5 h-5 text-zinc-500" />
-                              )}
-                                <div>
-                                  <h3 className={cn(
-                                    "text-lg font-bold transition-all",
-                                    topic.completed ? "text-blue-400" : "text-white"
-                                  )}>
-                                    {topic.title}
-                                  </h3>
-                                  <div className="flex items-center gap-3 mt-1">
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                                      {topic.problems.length} Problems • {topic.problems.filter(p => p.completed).length} Done
-                                    </p>
-                                    {!topic.completed && topic.problems.length > 0 && (
-                                      <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
-                                        <div 
-                                          className="h-full bg-blue-500 transition-all duration-500"
-                                          style={{ width: `${(topic.problems.filter(p => p.completed).length / topic.problems.length) * 100}%` }}
-                                        />
-                                      </div>
-                                    )}
-                                    {topic.completed && (
-                                      <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">Mastered</span>
-                                    )}
-                                  </div>
-                                </div>
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => toggleTopicExpansion(topic.id)}
-                              className={cn(
-                                "p-2 hover:bg-white/5 rounded-lg transition-all",
-                                isExpanded && "rotate-180"
-                              )}
-                            >
-                              <ChevronDown className="w-4 h-4 text-zinc-500" />
-                            </button>
-                            <button 
-                              onClick={() => setProgress(progressService.deleteCustomTopic(topic.id))}
-                              className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 rounded-lg text-zinc-600 hover:text-red-500 transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
 
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div 
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="border-t border-white/5 bg-black/20"
-                            >
-                              <div className="p-6 space-y-8">
-                                {topic.problems.length > 0 ?
-                                  <>
-                                    {/* Best Resource */}
-                                    {bestResource && (
-                                      <div className="space-y-4">
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-yellow-500 flex items-center gap-2">
-                                          <Star className="w-3 h-3 fill-current" />
-                                          Best Recommended Resource
-                                        </h4>
-                                        <div className="p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/20 relative overflow-hidden group">
-                                          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                            <Trophy className="w-16 h-16 text-yellow-500" />
-                                          </div>
-                                          <div className="relative z-10">
-                                            <div className="flex items-center justify-between mb-2">
-                                              <h5 className="font-bold text-lg text-yellow-500">{bestResource.title}</h5>
-                                              <a 
-                                                href={bestResource.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition-all active:scale-95"
-                                              >
-                                                <ExternalLink className="w-4 h-4" />
-                                              </a>
-                                            </div>
-                                            <p className="text-sm text-zinc-400 mb-3">
-                                              {bestResource.reason || "This is the top-rated resource for mastering this topic."}
-                                            </p>
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">
-                                                {bestResource.platform}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
 
-                                    {/* Top 20 Interview Questions */}
-                                    {interviewQuestions.length > 0 && (
-                                      <div className="space-y-4">
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
-                                          <Trophy className="w-3 h-3" />
-                                          Top 20 Interview Questions
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                          {interviewQuestions.map((prob: any) => (
-                                            <div 
-                                              key={prob.id}
-                                              className={cn(
-                                                "flex items-center justify-between p-3 rounded-xl border transition-all",
-                                                prob.completed ? "bg-blue-500/10 border-blue-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
-                                              )}
-                                            >
-                                              <div className="flex items-center gap-3 overflow-hidden">
-                                                <button 
-                                                  onClick={() => {
-                                                    const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
-                                                    setProgress(newProgress);
-                                                    const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
-                                                    if (topicAfter?.completed && !topic.completed) {
-                                                      triggerConfetti();
-                                                    }
-                                                  }}
-                                                  className="shrink-0"
-                                                >
-                                                  {prob.completed ? (
-                                                    <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                                                  ) : (
-                                                    <Circle className="w-5 h-5 text-zinc-700" />
-                                                  )}
-                                                </button>
-                                                <div className="flex flex-col overflow-hidden">
-                                                  <span className={cn(
-                                                    "text-sm font-medium truncate",
-                                                    prob.completed ? "text-zinc-500 line-through" : "text-zinc-300"
-                                                  )}>
-                                                    {prob.title}
-                                                  </span>
-                                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">{prob.platform}</span>
-                                                </div>
-                                              </div>
-                                              <a 
-                                                href={prob.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 text-zinc-600 hover:text-blue-400 transition-colors shrink-0"
-                                              >
-                                                <ExternalLink className="w-4 h-4" />
-                                              </a>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Comprehensive Problem List */}
-                                    {relatedProblems.length > 0 && (
-                                      <div className="space-y-4">
                                         <div className="h-px bg-white/5 w-full" />
                                         <div className="flex items-center justify-between">
                                           <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
@@ -2083,462 +1870,399 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'leaderboard' && isAuthenticated && (
+          {activeTab === 'dashboard' && isAuthenticated && (
             <motion.div 
-              key="leaderboard"
+              key="dashboard"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
+              className="max-w-7xl mx-auto p-8"
             >
+              {/* Dashboard Header */}
               <div className="flex flex-col lg:flex-row items-start justify-between gap-8 mb-12">
-                <div>
-                  <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-                    <Trophy className="w-10 h-10 text-yellow-500" />
-                    Leaderboard & Stats
-                  </h1>
-                  <p className="text-zinc-400">Track your rank, earn badges, and analyze your performance.</p>
+                <div className="flex items-center gap-6">
+                  <div className="w-24 h-24 rounded-[32px] bg-blue-500 flex items-center justify-center shadow-2xl shadow-blue-500/20">
+                    <User className="w-12 h-12 text-black" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-black mb-1 tracking-tighter">{progress.userName || 'Scholar'}</h1>
+                    <p className="text-zinc-500 font-medium">{userEmail}</p>
+                    <div className="flex items-center gap-3 mt-3">
+                      <div className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full flex items-center gap-2">
+                        <Trophy className="w-3 h-3 text-yellow-500" />
+                        <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">Rank #{Math.max(1, 150 - (progress.completionHistory.length * 2))}</span>
+                      </div>
+                      <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
+                        <Star className="w-3 h-3 text-blue-500" />
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                          {progress.completionHistory.filter(h => h.type === 'problem').length * 10 + 
+                           progress.completionHistory.filter(h => h.type === 'topic').length * 50} Points
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex flex-wrap gap-4">
-                  <div className="glass p-6 rounded-3xl text-center min-w-[140px] border-yellow-500/20 bg-yellow-500/5">
-                    <div className="text-3xl font-black text-yellow-500">
-                      {progress.completionHistory.filter(h => h.type === 'problem').length * 10 + 
-                       progress.completionHistory.filter(h => h.type === 'topic').length * 50}
+                <div className="flex gap-4">
+                  <div className="glass p-6 rounded-[32px] border-orange-500/20 bg-orange-500/5 text-center min-w-[140px]">
+                    <div className="text-3xl font-black text-orange-500 flex items-center justify-center gap-2">
+                      <Flame className="w-6 h-6" />
+                      {progress.streak.current}
                     </div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Points</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Day Streak</div>
                   </div>
-                  <div className="glass p-6 rounded-3xl text-center min-w-[140px] border-blue-500/20 bg-blue-500/5">
-                    <div className="text-3xl font-black text-blue-500">
-                      #{Math.max(1, 150 - (progress.completionHistory.length * 2))}
+                  <div className="glass p-6 rounded-[32px] border-purple-500/20 bg-purple-500/5 text-center min-w-[140px]">
+                    <div className="text-3xl font-black text-purple-500">
+                      {progress.completionHistory.filter(h => h.type === 'problem').length >= 1 ? 
+                        [
+                          progress.completionHistory.filter(h => h.type === 'problem').length >= 1,
+                          progress.completionHistory.filter(h => h.type === 'topic').length >= 1,
+                          progress.completionHistory.filter(h => h.type === 'problem').length >= 10,
+                          progress.streak.current >= 3,
+                          progress.completionHistory.filter(h => h.type === 'topic').length >= 5,
+                          calculateProgress() === 100
+                        ].filter(Boolean).length : 0}
                     </div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Global Rank</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Achievements</div>
                   </div>
                 </div>
               </div>
 
-              {/* Gamification: Badges */}
-              <div className="mb-12">
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-purple-500" />
-                  Your Achievements
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[
-                    { id: 'first', icon: Zap, label: 'First Step', desc: 'Complete 1 problem', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 1 },
-                    { id: 'topic', icon: BookOpen, label: 'Topic Master', desc: 'Complete 1 topic', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 1 },
-                    { id: 'scholar', icon: Award, label: 'Scholar', desc: 'Complete 10 problems', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 10 },
-                    { id: 'streak', icon: Flame, label: 'On Fire', desc: '3 day streak', achieved: progress.completionHistory.length >= 5 },
-                    { id: 'expert', icon: Star, label: 'Expert', desc: 'Master 5 topics', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 5 },
-                    { id: 'perfect', icon: CheckCircle2, label: 'Perfect Score', desc: '100% Roadmap', achieved: calculateProgress() === 100 && progress.customTopics.length > 0 },
-                  ].map((badge) => (
-                    <div 
-                      key={badge.id}
-                      className={cn(
-                        "p-4 rounded-2xl border flex flex-col items-center text-center transition-all",
-                        badge.achieved 
-                          ? "glass border-purple-500/30 bg-purple-500/5" 
-                          : "bg-white/5 border-white/5 opacity-40 grayscale"
-                      )}
-                    >
-                      <badge.icon className={cn("w-8 h-8 mb-3", badge.achieved ? "text-purple-400" : "text-zinc-600")} />
-                      <div className="text-xs font-bold mb-1">{badge.label}</div>
-                      <div className="text-[8px] text-zinc-500 uppercase tracking-tighter">{badge.desc}</div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Analytics & Visuals */}
+                <div className="lg:col-span-8 space-y-8">
+                  {/* Heatmap Section */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-xl font-bold flex items-center gap-3">
+                        <Activity className="w-6 h-6 text-emerald-500" />
+                        Coding Consistency
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Intensity</span>
+                        <div className="flex gap-1">
+                          {[0.1, 0.3, 0.6, 1].map(op => (
+                            <div key={op} className="w-2 h-2 rounded-sm bg-emerald-500" style={{ opacity: op }} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <CodingHeatmap data={(() => {
+                      const data: { [key: string]: number } = {};
+                      progress.completionHistory.forEach(h => {
+                        const date = format(new Date(h.timestamp), 'yyyy-MM-dd');
+                        data[date] = (data[date] || 0) + 1;
+                      });
+                      return data;
+                    })()} />
+                  </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Global Leaderboard */}
-                <div className="lg:col-span-1 glass p-8 rounded-3xl border border-white/5">
-                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-500" />
-                    Top Scholars
-                  </h3>
-                  <div className="space-y-4">
-                    {globalLeaderboard.map((user, i) => (
-                      <div 
-                        key={user.email} 
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-2xl transition-all",
-                          user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                            {user.name.substring(0, 2).toUpperCase()}
+                  {/* Charts Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Activity Trend */}
+                    <div className="glass p-8 rounded-[40px] border border-white/5">
+                      <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-blue-500" />
+                          Activity Trend
+                        </h3>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">7D</span>
+                      </div>
+                      <div className="h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={(() => {
+                            const last7Days = eachDayOfInterval({
+                              start: subDays(new Date(), 6),
+                              end: new Date()
+                            });
+                            return last7Days.map(day => ({
+                              date: format(day, 'MMM dd'),
+                              count: progress.completionHistory.filter(h => isSameDay(new Date(h.timestamp), day)).length
+                            }));
+                          })()}>
+                            <defs>
+                              <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                            <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} hide />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                              itemStyle={{ color: '#3b82f6' }}
+                            />
+                            <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Learning Distribution */}
+                    <div className="glass p-8 rounded-[40px] border border-white/5">
+                      <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                        <PieChartIcon className="w-5 h-5 text-purple-500" />
+                        Focus Areas
+                      </h3>
+                      <div className="h-[200px] w-full flex items-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
+                                { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
+                              ].filter(d => d.value > 0).length > 0 ? [
+                                { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
+                                { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
+                              ] : [{ name: 'No Data', value: 1 }]}
+                              cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value"
+                            >
+                              <Cell fill="#3b82f6" />
+                              <Cell fill="#8b5cf6" />
+                              <Cell fill="#27272a" />
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="flex flex-col gap-3 pr-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <div className="text-[10px] font-bold text-zinc-400 uppercase">Problems</div>
                           </div>
-                          <div>
-                            <div className="text-xs font-bold">{user.name}</div>
-                            <div className="flex items-center gap-2">
-                              <div className="text-[10px] text-zinc-500">{user.points} pts</div>
-                              <div className="text-[10px] text-yellow-500 flex items-center gap-0.5">
-                                <Flame className="w-3 h-3" />
-                                {user.email === userEmail ? progress.streak.current : Math.floor(Math.random() * 10) + 1}d
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-purple-500" />
+                            <div className="text-[10px] font-bold text-zinc-400 uppercase">Topics</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Topic Mastery */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                      <Code2 className="w-6 h-6 text-blue-500" />
+                      Topic Mastery
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {progress.customTopics.length === 0 ? (
+                        <div className="col-span-2 text-center py-12 text-zinc-500 text-sm">Start learning to see topic-wise progress.</div>
+                      ) : (
+                        progress.customTopics.slice(0, 4).map((topic, i) => {
+                          const completed = topic.problems.filter(p => p.completed).length;
+                          const total = topic.problems.length;
+                          const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                          return (
+                            <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                              <div className="flex justify-between text-xs font-bold mb-3">
+                                <span>{topic.title}</span>
+                                <span className="text-blue-400">{pct}%</span>
+                              </div>
+                              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  className="h-full bg-gradient-to-r from-blue-600 to-blue-400" 
+                                />
                               </div>
                             </div>
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "text-xs font-black",
-                          i === 0 ? "text-yellow-500" : i === 1 ? "text-zinc-400" : i === 2 ? "text-orange-500" : "text-zinc-600"
-                        )}>
-                          #{i + 1}
-                        </div>
-                      </div>
-                    ))}
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Analytics: Completion Over Time */}
-                <div className="lg:col-span-2 glass p-8 rounded-3xl border border-white/5">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-blue-500" />
-                      Activity Trend
+                  {/* Achievements Section */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                      <Award className="w-6 h-6 text-yellow-500" />
+                      Milestones & Badges
                     </h3>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Last 7 Days</span>
-                  </div>
-                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={(() => {
-                        const last7Days = eachDayOfInterval({
-                          start: subDays(new Date(), 6),
-                          end: new Date()
-                        });
-                        return last7Days.map(day => ({
-                          date: format(day, 'MMM dd'),
-                          count: progress.completionHistory.filter(h => isSameDay(new Date(h.timestamp), day)).length
-                        }));
-                      })()}>
-                        <defs>
-                          <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                        <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                          itemStyle={{ color: '#3b82f6' }}
-                        />
-                        <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Distribution */}
-                <div className="glass p-8 rounded-3xl border border-white/5">
-                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <PieChartIcon className="w-5 h-5 text-blue-500" />
-                    Learning Distribution
-                  </h3>
-                  <div className="h-[250px] w-full flex items-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
-                            { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
-                          ].filter(d => d.value > 0).length > 0 ? [
-                            { name: 'Problems', value: progress.completionHistory.filter(h => h.type === 'problem').length },
-                            { name: 'Topics', value: progress.completionHistory.filter(h => h.type === 'topic').length },
-                          ] : [{ name: 'No Data', value: 1 }]}
-                          cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                      {[
+                        { id: 'first', icon: Zap, label: 'First Step', desc: '1 Problem', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 1 },
+                        { id: 'topic', icon: BookOpen, label: 'Topic Master', desc: '1 Topic', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 1 },
+                        { id: 'scholar', icon: Award, label: 'Scholar', desc: '10 Problems', achieved: progress.completionHistory.filter(h => h.type === 'problem').length >= 10 },
+                        { id: 'streak', icon: Flame, label: 'On Fire', desc: '3 Day Streak', achieved: progress.streak.current >= 3 },
+                        { id: 'expert', icon: Star, label: 'Expert', desc: '5 Topics', achieved: progress.completionHistory.filter(h => h.type === 'topic').length >= 5 },
+                        { id: 'perfect', icon: CheckCircle2, label: 'Perfect', desc: '100% Roadmap', achieved: calculateProgress() === 100 && progress.customTopics.length > 0 },
+                      ].map((badge) => (
+                        <div 
+                          key={badge.id}
+                          className={cn(
+                            "p-4 rounded-2xl border flex flex-col items-center text-center transition-all group relative",
+                            badge.achieved 
+                              ? "glass border-yellow-500/30 bg-yellow-500/5" 
+                              : "bg-white/5 border-white/5 opacity-40 grayscale"
+                          )}
                         >
-                          <Cell fill="#3b82f6" />
-                          <Cell fill="#8b5cf6" />
-                          <Cell fill="#27272a" />
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="flex flex-col gap-4 pr-8">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-blue-500" />
-                        <div>
-                          <div className="text-xs font-bold">Problems</div>
-                          <div className="text-[10px] text-zinc-500">{progress.completionHistory.filter(h => h.type === 'problem').length}</div>
+                          <badge.icon className={cn("w-8 h-8 mb-3 transition-transform group-hover:scale-110", badge.achieved ? "text-yellow-400" : "text-zinc-600")} />
+                          <div className="text-[10px] font-bold mb-1">{badge.label}</div>
+                          <div className="text-[8px] text-zinc-500 uppercase tracking-tighter">{badge.desc}</div>
+                          {badge.achieved && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-black" />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-purple-500" />
-                        <div>
-                          <div className="text-xs font-bold">Topics</div>
-                          <div className="text-[10px] text-zinc-500">{progress.completionHistory.filter(h => h.type === 'topic').length}</div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Mastery Breakdown */}
-                <div className="glass p-8 rounded-3xl border border-white/5">
-                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-blue-500" />
-                    Topic-wise Progress
-                  </h3>
-                  <div className="space-y-6">
-                    {progress.customTopics.length === 0 ? (
-                      <div className="text-center py-12 text-zinc-500 text-sm">Add topics to see breakdown.</div>
-                    ) : (
-                      progress.customTopics.slice(0, 4).map((topic, i) => {
-                        const completed = topic.problems.filter(p => p.completed).length;
-                        const total = topic.problems.length;
-                        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-                        return (
-                          <div key={i}>
-                            <div className="flex justify-between text-xs font-bold mb-2">
-                              <span>{topic.title}</span>
-                              <span className="text-blue-400">{pct}%</span>
-                            </div>
-                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500" style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'social' && isAuthenticated && (
-            <motion.div 
-              key="social"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Friends & Referrals */}
-                <div className="space-y-8">
-                  {/* Referral Section */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400">
-                        <Share2 className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">Refer a Friend</h3>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Earn 500 points each</p>
-                      </div>
-                    </div>
-                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-6 flex items-center justify-between">
-                      <span className="font-mono text-lg font-bold text-blue-400 tracking-widest">{progress.referralCode}</span>
-                      <button 
-                        onClick={() => {
-                          navigator.clipboard.writeText(progress.referralCode);
-                        }}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-all"
-                      >
-                        <Download className="w-4 h-4 text-zinc-500" />
-                      </button>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Use a Code</div>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={referralInput}
-                          onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
-                          placeholder="ENTER CODE"
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        />
-                        <button 
-                          onClick={handleUseReferral}
-                          className="px-4 py-2 bg-blue-500 text-black rounded-xl text-xs font-bold hover:bg-blue-400 transition-all"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Friends Section */}
+                {/* Right Column: Social & Leaderboard */}
+                <div className="lg:col-span-4 space-y-8">
+                  {/* Social Card */}
                   <div className="glass p-8 rounded-[40px] border border-white/5">
                     <div className="flex items-center justify-between mb-8">
                       <h3 className="text-xl font-bold flex items-center gap-3">
                         <Users className="w-6 h-6 text-blue-500" />
-                        Friends
+                        Social
                       </h3>
-                      <div className="text-xs font-bold text-zinc-500 bg-white/5 px-3 py-1 rounded-full">
-                        {progress.friends.filter(f => f.status === 'accepted').length} Connected
-                      </div>
+                      <button className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
+                        <Plus className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <div className="space-y-4 mb-8">
-                      <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={friendInput}
-                          onChange={(e) => setFriendInput(e.target.value)}
-                          placeholder="Friend's Username"
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        />
-                        <button 
-                          onClick={handleSendFriendRequest}
-                          className="p-2 bg-blue-500 text-black rounded-xl hover:bg-blue-400 transition-all"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {progress.friends.length === 0 ? (
-                        <div className="text-center py-8 text-zinc-500 text-sm italic">No friends yet. Start connecting!</div>
-                      ) : (
-                        progress.friends.map((friend, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
-                                <User className="w-5 h-5 text-zinc-500" />
+                    <div className="space-y-6">
+                      {/* Friends List (Truncated) */}
+                      <div>
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Friends Online</div>
+                        <div className="space-y-3">
+                          {friends.slice(0, 3).map(friend => (
+                            <div key={friend.email} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold">
+                                    {friend.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className={cn(
+                                    "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0a0a0a]",
+                                    friend.status === 'online' ? "bg-emerald-500" : "bg-zinc-600"
+                                  )} />
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold">{friend.name}</div>
+                                  <div className="text-[10px] text-zinc-500">{friend.status}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="text-sm font-bold">{friend.userName}</div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{friend.status}</div>
-                              </div>
-                            </div>
-                            {friend.status === 'pending' && (
-                              <button 
-                                onClick={() => handleAcceptFriend(friend.userName)}
-                                className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/30 transition-all"
-                              >
-                                Accept
+                              <button className="p-2 text-zinc-500 hover:text-blue-400 transition-colors">
+                                <MessageSquare className="w-4 h-4" />
                               </button>
-                            )}
-                            {friend.status === 'accepted' && (
-                              <button 
-                                onClick={() => handleSendChallenge(friend.userName)}
-                                className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-all flex items-center gap-2"
-                              >
-                                <Zap className="w-3 h-3" />
-                                Challenge
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Active Challenges */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
-                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                      <Zap className="w-6 h-6 text-blue-500" />
-                      Active Challenges
-                    </h3>
-                    <div className="space-y-4">
-                      {progress.challenges.filter(c => c.status === 'pending').length === 0 ? (
-                        <div className="text-center py-4 text-zinc-500 text-xs italic">No active challenges.</div>
-                      ) : (
-                        progress.challenges.filter(c => c.status === 'pending').map((challenge) => (
-                          <div key={challenge.id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-bold">From: {challenge.from}</span>
-                              <span className="text-[10px] font-bold text-blue-400">{challenge.problems.length} Problems</span>
                             </div>
-                            <button 
-                              onClick={() => handleAcceptChallenge(challenge.id)}
-                              className="w-full py-2 bg-blue-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-400 transition-all"
-                            >
-                              Accept Challenge
+                          ))}
+                          {friends.length > 3 && (
+                            <button className="w-full py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:text-white transition-colors">
+                              View All {friends.length} Friends
                             </button>
-                          </div>
-                        ))
-                      )}
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Referral Code */}
+                      <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                        <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Your Referral Code</div>
+                        <div className="flex items-center justify-between">
+                          <code className="text-sm font-mono font-bold">SHANMUKH-{userEmail?.split('@')[0].toUpperCase()}</code>
+                          <button className="p-2 hover:bg-blue-500/10 rounded-lg transition-all">
+                            <Share2 className="w-4 h-4 text-blue-400" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Weekly Challenges */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-purple-500/5">
-                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                      <Trophy className="w-6 h-6 text-purple-500" />
-                      Weekly Challenges
+                  {/* Leaderboard Preview */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                      <Trophy className="w-6 h-6 text-yellow-500" />
+                      Top Scholars
                     </h3>
                     <div className="space-y-4">
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold">Code Master</span>
-                          <span className="text-[10px] font-bold text-purple-400">500 XP</span>
+                      {globalLeaderboard.slice(0, 5).map((user, i) => (
+                        <div 
+                          key={user.email} 
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-2xl transition-all",
+                            user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black",
+                              i === 0 ? "bg-yellow-500 text-black" : 
+                              i === 1 ? "bg-zinc-300 text-black" : 
+                              i === 2 ? "bg-orange-500 text-black" : 
+                              "bg-zinc-800 text-zinc-400"
+                            )}>
+                              {i + 1}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold">{user.name}</div>
+                              <div className="text-[10px] text-zinc-500">{user.points} pts</div>
+                            </div>
+                          </div>
+                          {i < 3 && <Award className={cn("w-4 h-4", i === 0 ? "text-yellow-500" : i === 1 ? "text-zinc-400" : "text-orange-500")} />}
                         </div>
-                        <p className="text-[10px] text-zinc-500 mb-3">Solve 5 problems this week</p>
-                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-500 w-[60%]" />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Priority Revision */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-red-500/5">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <RefreshCw className="w-5 h-5 text-red-400" />
+                      Priority Revision
+                    </h3>
+                    <div className="space-y-3">
+                      {progress.customTopics.filter(t => t.problems.some(p => !p.completed)).slice(0, 2).map((topic, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/5">
+                          <div className="text-xs font-bold mb-1">{topic.title}</div>
+                          <div className="text-[10px] text-zinc-500">
+                            {topic.problems.filter(p => !p.completed).length} pending problems
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold">Topic Explorer</span>
-                          <span className="text-[10px] font-bold text-purple-400">300 XP</span>
-                        </div>
-                        <p className="text-[10px] text-zinc-500 mb-3">Complete 2 new topics</p>
-                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-500 w-[0%]" />
-                        </div>
-                      </div>
+                      ))}
+                      {progress.customTopics.length === 0 && (
+                        <div className="text-xs text-zinc-500 italic">No pending topics found.</div>
+                      )}
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Right Column: Activity Feed */}
-                <div className="lg:col-span-2 glass p-8 rounded-[40px] border border-white/5">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
-                    <Activity className="w-8 h-8 text-blue-500" />
-                    Activity Feed
-                  </h3>
-                  <div className="space-y-6">
-                    {progress.activityFeed.length === 0 ? (
-                      <div className="text-center py-20 text-zinc-500">
-                        <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>No activity yet. Start learning to see updates!</p>
+              {/* Activity Feed (Full Width) */}
+              <div className="mt-8 glass p-8 rounded-[40px] border border-white/5">
+                <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                  <Activity className="w-6 h-6 text-blue-500" />
+                  Recent Activity
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {progress.completionHistory.slice(-9).reverse().map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        item.type === 'problem' ? "bg-blue-500/10 text-blue-400" : "bg-purple-500/10 text-purple-400"
+                      )}>
+                        {item.type === 'problem' ? <Code2 className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
                       </div>
-                    ) : (
-                      progress.activityFeed.map((activity, i) => (
-                        <motion.div 
-                          key={activity.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="flex gap-4 p-4 hover:bg-white/5 rounded-3xl transition-all border border-transparent hover:border-white/5 group"
-                        >
-                          <div className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
-                            activity.type === 'problem_solved' ? "bg-emerald-500/20 text-emerald-400" :
-                            activity.type === 'topic_completed' ? "bg-blue-500/20 text-blue-400" :
-                            activity.type === 'streak_milestone' ? "bg-yellow-500/20 text-yellow-400" :
-                            "bg-purple-500/20 text-purple-400"
-                          )}>
-                            {activity.type === 'problem_solved' ? <Code2 className="w-6 h-6" /> :
-                             activity.type === 'topic_completed' ? <BookOpen className="w-6 h-6" /> :
-                             activity.type === 'streak_milestone' ? <Award className="w-6 h-6" /> :
-                             <Users className="w-6 h-6" />}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{activity.userName}</span>
-                              <span className="text-[10px] text-zinc-500 font-mono">{format(activity.timestamp, 'HH:mm')}</span>
-                            </div>
-                            <p className="text-sm text-zinc-400 leading-relaxed">{activity.message}</p>
-                          </div>
-                        </motion.div>
-                      ))
-                    )}
-                  </div>
+                      <div>
+                        <div className="text-xs font-bold">{item.title}</div>
+                        <div className="text-[10px] text-zinc-500">{format(new Date(item.timestamp), 'MMM dd, HH:mm')}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {progress.completionHistory.length === 0 && (
+                    <div className="col-span-full text-center py-8 text-zinc-500 text-sm">No recent activity recorded.</div>
+                  )}
                 </div>
               </div>
             </motion.div>
           )}
+
+
+
 
           {activeTab === 'visualizer' && isAuthenticated && (
             <motion.div 
@@ -2564,141 +2288,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'profile' && isAuthenticated && (
-            <motion.div 
-              key="profile"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* User Info Card */}
-                <div className="lg:col-span-1 space-y-8">
-                  <div className="glass p-8 rounded-[40px] border border-white/5 text-center">
-                    <div className="w-32 h-32 rounded-[32px] bg-blue-500 mx-auto mb-6 flex items-center justify-center shadow-[0_0_50px_rgba(59,130,246,0.3)]">
-                      <User className="w-16 h-16 text-black" />
-                    </div>
-                    <h2 className="text-3xl font-black mb-2">{progress.userName || userEmail.split('@')[0]}</h2>
-                    <p className="text-zinc-500 text-sm mb-8">{userEmail}</p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="text-2xl font-black text-blue-400">{progress.points}</div>
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Points</div>
-                      </div>
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="text-2xl font-black text-yellow-500">{progress.streak.current}</div>
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Streak</div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Streak Stats */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-yellow-500/5">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-3">
-                      <Flame className="w-6 h-6 text-yellow-500" />
-                      Streak Analytics
-                    </h3>
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-zinc-400">Current Streak</span>
-                        <span className="text-xl font-black text-yellow-500">{progress.streak.current} Days</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-zinc-400">Best Streak</span>
-                        <span className="text-xl font-black text-blue-400">{progress.streak.best} Days</span>
-                      </div>
-                      <div className="pt-4 border-t border-white/5">
-                        <div className="text-xs text-zinc-500 italic">
-                          Keep learning every day to maintain your streak! Missing a day will reset it.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Revision Reminders */}
-                  {revisionNeeded.length > 0 && (
-                    <div className="glass p-8 rounded-[40px] border border-white/5 bg-red-500/5">
-                      <h3 className="text-lg font-bold mb-6 flex items-center gap-3">
-                        <RefreshCw className="w-6 h-6 text-red-500" />
-                        Smart Revision
-                      </h3>
-                      <div className="space-y-4">
-                        {revisionNeeded.slice(0, 3).map((rev, i) => (
-                          <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="text-xs font-bold text-red-400 mb-1">REVISION NEEDED</div>
-                            <div className="text-sm font-bold">{rev.problem.title}</div>
-                            <div className="text-[10px] text-zinc-500">{rev.topicTitle}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Badges & Achievements */}
-                <div className="lg:col-span-2 space-y-8">
-                  {/* Heatmap */}
-                  <CodingHeatmap data={progress.heatmap} />
-
-                  <div className="glass p-8 rounded-[40px] border border-white/5">
-                    <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
-                      <Award className="w-8 h-8 text-blue-500" />
-                      Achievements & Badges
-                    </h3>
-                    
-                    {progress.badges.length === 0 ? (
-                      <div className="text-center py-20 text-zinc-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                        <Award className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>No badges unlocked yet. Keep pushing!</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                        {progress.badges.map((badge, i) => (
-                          <motion.div 
-                            key={badge.id}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: i * 0.1 }}
-                            className="p-6 bg-white/5 rounded-[32px] border border-white/5 text-center group hover:bg-blue-500/5 transition-all"
-                          >
-                            <div className="w-16 h-16 bg-blue-500/20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
-                              {badge.icon === 'Flame' ? <Flame className="w-8 h-8" /> : <Award className="w-8 h-8" />}
-                            </div>
-                            <h4 className="font-bold text-sm mb-1">{badge.title}</h4>
-                            <p className="text-[10px] text-zinc-500 leading-tight">{badge.description}</p>
-                          </motion.div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Recent Activity */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5">
-                    <h3 className="text-xl font-bold mb-6">Recent Milestones</h3>
-                    <div className="space-y-4">
-                      {progress.completionHistory.slice(-5).reverse().map((h, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                          <div className={cn(
-                            "p-2 rounded-lg",
-                            h.type === 'topic' ? "bg-blue-500/20 text-blue-400" : "bg-emerald-500/20 text-emerald-400"
-                          )}>
-                            {h.type === 'topic' ? <BookOpen className="w-4 h-4" /> : <Code2 className="w-4 h-4" />}
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-bold">{h.title}</div>
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{h.type} completed</div>
-                          </div>
-                          <div className="text-[10px] font-mono text-zinc-500">{format(h.timestamp, 'MMM d')}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {activeTab === 'games' && isAuthenticated && (
             <motion.div 
