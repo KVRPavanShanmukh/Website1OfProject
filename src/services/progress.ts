@@ -7,7 +7,7 @@ export interface Problem {
   platform: string;
   completed: boolean;
   completedAt?: number;
-  category?: 'interview' | 'related' | 'best';
+  category?: 'interview' | 'related' | 'best' | 'top50';
   reason?: string;
 }
 

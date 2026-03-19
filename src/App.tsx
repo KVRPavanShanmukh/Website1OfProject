@@ -80,12 +80,11 @@ import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, 
 import { progressService, Progress, SpeedCodingStat, Problem, Challenge } from './services/progress';
 import { cn } from './lib/utils';
 import { CodingHeatmap } from './components/CodingHeatmap';
-import { ConceptVisualizer } from './components/ConceptVisualizer';
 import { SpeedCoding } from './components/SpeedCoding';
 import { SilentStudy } from './components/SilentStudy';
 import { ConceptGraph } from './components/ConceptGraph';
 
-type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'visualizer' | 'speed-coding' | 'silent-study';
+type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'speed-coding' | 'silent-study';
 
 const MOTIVATIONAL_QUOTES = [
   { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
@@ -208,6 +207,7 @@ export default function App() {
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
   const [showMoreProblems, setShowMoreProblems] = useState<Record<string, boolean>>({});
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
   const [userNameInput, setUserNameInput] = useState(progress.userName);
   const [gameScore, setGameScore] = useState(0);
   const [gameHighScore, setGameHighScore] = useState(() => Number(localStorage.getItem('2048-highscore') || 0));
@@ -1828,31 +1828,111 @@ export default function App() {
                                 {topic.completed && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              {topic.problems.map(prob => (
-                                <div key={prob.id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
-                                  <div className="flex items-center gap-3">
-                                    <button 
-                                      onClick={() => {
-                                        const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
-                                        setProgress(newProgress);
-                                      }}
-                                      className={cn(
-                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                                        prob.completed ? "bg-emerald-500 border-emerald-500" : "border-white/20 hover:border-blue-500"
-                                      )}
-                                    >
-                                      {prob.completed && <CheckCircle2 className="w-3 h-3 text-black" />}
-                                    </button>
-                                    <span className={cn("text-sm", prob.completed ? "text-zinc-500 line-through" : "text-zinc-300")}>
-                                      {prob.title}
-                                    </span>
+                            <div className="space-y-6">
+                              {/* Grouped Problems */}
+                              {(() => {
+                                const grouped = {
+                                  best: topic.problems.filter(p => p.category === 'best'),
+                                  interview: topic.problems.filter(p => p.category === 'interview'),
+                                  top50: topic.problems.filter(p => p.category === 'top50'),
+                                  related: topic.problems.filter(p => p.category === 'related' || !p.category),
+                                };
+
+                                const renderProblem = (prob: any) => (
+                                  <div key={prob.id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                      <button 
+                                        onClick={() => {
+                                          const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
+                                          setProgress(newProgress);
+                                        }}
+                                        className={cn(
+                                          "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                          prob.completed ? "bg-emerald-500 border-emerald-500" : "border-white/20 hover:border-blue-500"
+                                        )}
+                                      >
+                                        {prob.completed && <CheckCircle2 className="w-3 h-3 text-black" />}
+                                      </button>
+                                      <span className={cn("text-sm", prob.completed ? "text-zinc-500 line-through" : "text-zinc-300")}>
+                                        {prob.title}
+                                      </span>
+                                    </div>
+                                    <a href={prob.url} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-white/10 rounded-lg transition-all">
+                                      <ExternalLink className="w-3 h-3 text-zinc-500" />
+                                    </a>
                                   </div>
-                                  <a href={prob.url} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-white/10 rounded-lg transition-all">
-                                    <ExternalLink className="w-3 h-3 text-zinc-500" />
-                                  </a>
-                                </div>
-                              ))}
+                                );
+
+                                const renderFolder = (id: string, label: string, color: string, problems: any[], showMoreKey?: string) => {
+                                  const isOpen = openFolders[`${topic.id}_${id}`];
+                                  
+                                  return (
+                                    <div className="space-y-2">
+                                      <button 
+                                        onClick={() => setOpenFolders(prev => ({ ...prev, [`${topic.id}_${id}`]: !prev[`${topic.id}_${id}`] }))}
+                                        className={cn(
+                                          "w-full flex items-center justify-between p-3 rounded-xl border transition-all",
+                                          isOpen 
+                                            ? (color === 'blue' ? "bg-blue-500/10 border-blue-500/20" : 
+                                               color === 'emerald' ? "bg-emerald-500/10 border-emerald-500/20" :
+                                               color === 'purple' ? "bg-purple-500/10 border-purple-500/20" :
+                                               "bg-zinc-500/10 border-zinc-500/20")
+                                            : "bg-black/20 border-white/5 hover:bg-white/5"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          {isOpen ? (
+                                            <FolderOpen className={cn("w-4 h-4", 
+                                              color === 'blue' ? "text-blue-400" : 
+                                              color === 'emerald' ? "text-emerald-400" :
+                                              color === 'purple' ? "text-purple-400" :
+                                              "text-zinc-400"
+                                            )} />
+                                          ) : (
+                                            <Folder className="w-4 h-4 text-zinc-500" />
+                                          )}
+                                          <span className={cn(
+                                            "text-xs font-bold uppercase tracking-widest",
+                                            isOpen 
+                                              ? (color === 'blue' ? "text-blue-400" : 
+                                                 color === 'emerald' ? "text-emerald-400" :
+                                                 color === 'purple' ? "text-purple-400" :
+                                                 "text-zinc-400")
+                                              : "text-zinc-500"
+                                          )}>
+                                            {label}
+                                          </span>
+                                          <span className="text-[10px] text-zinc-600 ml-2">({problems.length})</span>
+                                        </div>
+                                        {isOpen ? <ChevronDown className="w-3 h-3 text-zinc-600" /> : <ChevronRight className="w-3 h-3 text-zinc-600" />}
+                                      </button>
+
+                                      {isOpen && (
+                                        <div className="space-y-2 pl-4 border-l border-white/5 ml-5">
+                                          {(showMoreKey && !showMoreProblems[showMoreKey] ? problems.slice(0, 5) : problems).map(renderProblem)}
+                                          {showMoreKey && problems.length > 5 && (
+                                            <button 
+                                              onClick={() => setShowMoreProblems(prev => ({ ...prev, [showMoreKey]: !prev[showMoreKey] }))}
+                                              className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest flex items-center gap-1 mt-2"
+                                            >
+                                              {showMoreProblems[showMoreKey] ? 'Show Less' : `Show ${problems.length - 5} More...`}
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                };
+
+                                return (
+                                  <div className="space-y-3">
+                                    {grouped.best.length > 0 && renderFolder('best', 'Best Resource', 'blue', grouped.best)}
+                                    {grouped.interview.length > 0 && renderFolder('interview', 'Top 10 Interview Problems', 'emerald', grouped.interview)}
+                                    {grouped.top50.length > 0 && renderFolder('top50', 'Top 50 Problems Asked', 'purple', grouped.top50, `${topic.id}_top50`)}
+                                    {grouped.related.length > 0 && renderFolder('related', 'Related Problems', 'zinc', grouped.related, `${topic.id}_related`)}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         ))
@@ -2291,18 +2371,6 @@ export default function App() {
 
 
 
-          {activeTab === 'visualizer' && isAuthenticated && (
-            <motion.div 
-              key="visualizer"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
-            >
-              <ConceptVisualizer />
-            </motion.div>
-          )}
-
           {activeTab === 'speed-coding' && isAuthenticated && (
             <motion.div 
               key="speed-coding"
@@ -2675,6 +2743,16 @@ export default function App() {
                     </h3>
                     
                     <div className="space-y-6">
+                      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Zap className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Daily Sessions</span>
+                        </div>
+                        <p className="text-xs text-zinc-400 leading-relaxed">
+                          You have <b>3 chances</b> per day to play any game. Use them wisely to sharpen your mind!
+                        </p>
+                      </div>
+
                       {selectedGame === '2048' ? (
                         <>
                           <div>

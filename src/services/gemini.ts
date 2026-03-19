@@ -13,13 +13,14 @@ export async function getGeneralizedTopicName(query: string): Promise<string> {
 export async function fetchChallengesForTopic(topic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Find at least 70+ coding challenges, practice problems, and interview questions for the topic: "${topic}".
+    contents: `Find high-quality coding challenges, practice problems, and interview questions for the topic: "${topic}".
     Search across all major platforms like LeetCode, Codeforces, CodeChef, HackerRank, GeeksforGeeks, InterviewBit, TopCoder, etc.
     
     Organize them into:
     1. "Best Resource": The single most recommended resource or problem set for this topic.
-    2. "Top 20 Interview Questions": The most essential questions.
-    3. "Comprehensive Problem List": At least 50+ other relevant problems from various websites to reach a total of 70+ problems.
+    2. "Top 10 Interview Problems": The most essential questions.
+    3. "Top 50 Problems Asked": A comprehensive list of frequently asked problems.
+    4. "Related Problems": Other relevant problems to reach a total of at most 75 problems.
     
     Provide direct URLs and ensure they are high quality.`,
     config: {
@@ -38,7 +39,19 @@ export async function fetchChallengesForTopic(topic: string) {
             },
             required: ["title", "url", "platform", "reason"]
           },
-          interviewQuestions: {
+          top10Interview: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                url: { type: Type.STRING },
+                platform: { type: Type.STRING }
+              },
+              required: ["title", "url", "platform"]
+            }
+          },
+          top50Asked: {
             type: Type.ARRAY,
             items: {
               type: Type.OBJECT,
@@ -63,7 +76,7 @@ export async function fetchChallengesForTopic(topic: string) {
             }
           }
         },
-        required: ["bestResource", "interviewQuestions", "relatedProblems"]
+        required: ["bestResource", "top10Interview", "top50Asked", "relatedProblems"]
       }
     },
   });
@@ -71,9 +84,13 @@ export async function fetchChallengesForTopic(topic: string) {
   try {
     const data = JSON.parse(response.text || "{}");
     const best = data.bestResource ? [{ ...data.bestResource, category: 'best' }] : [];
-    const interview = (data.interviewQuestions || []).map((p: any) => ({ ...p, category: 'interview' }));
+    const interview = (data.top10Interview || []).map((p: any) => ({ ...p, category: 'interview' }));
+    const top50 = (data.top50Asked || []).map((p: any) => ({ ...p, category: 'top50' }));
     const related = (data.relatedProblems || []).map((p: any) => ({ ...p, category: 'related' }));
-    return [...best, ...interview, ...related];
+    
+    // Combine and limit to 75
+    const all = [...best, ...interview, ...top50, ...related];
+    return all.slice(0, 75);
   } catch (e) {
     console.error("Failed to parse challenges:", e);
     return [];
