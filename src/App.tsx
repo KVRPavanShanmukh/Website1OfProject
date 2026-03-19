@@ -48,6 +48,13 @@ import {
   Share2,
   Lightbulb,
   Fan,
+  Heart,
+  Cloud,
+  Music,
+  Camera,
+  MousePointer2,
+  Skull,
+  Gamepad2,
   Power,
   RefreshCw,
   Home,
@@ -206,6 +213,20 @@ export default function App() {
   const [gameHighScore, setGameHighScore] = useState(() => Number(localStorage.getItem('2048-highscore') || 0));
   const [gameAttempts, setGameAttempts] = useState(() => Number(localStorage.getItem('2048-attempts') || 0));
   const [lockoutUntil, setLockoutUntil] = useState(() => Number(localStorage.getItem('2048-lockout') || 0));
+  const [selectedGame, setSelectedGame] = useState<'2048' | 'memory' | 'snake'>('2048');
+  const [memoryCards, setMemoryCards] = useState<{ id: number; icon: string; isFlipped: boolean; isMatched: boolean }[]>([]);
+  const [flippedCards, setFlippedCards] = useState<number[]>([]);
+  const [memoryMoves, setMemoryMoves] = useState(0);
+  const [memoryBest, setMemoryBest] = useState(() => Number(localStorage.getItem('memory-best')) || Infinity);
+  
+  // Snake Game State
+  const [snake, setSnake] = useState<{ x: number, y: number }[]>([]);
+  const [food, setFood] = useState<{ x: number, y: number }>({ x: 5, y: 5 });
+  const [direction, setDirection] = useState<'UP' | 'DOWN' | 'LEFT' | 'RIGHT'>('RIGHT');
+  const [isSnakeGameOver, setIsSnakeGameOver] = useState(false);
+  const [snakeScore, setSnakeScore] = useState(0);
+  const [snakeHighScore, setSnakeHighScore] = useState(() => Number(localStorage.getItem('snake-highscore')) || 0);
+  const [isSnakePaused, setIsSnakePaused] = useState(true);
   const [grid, setGrid] = useState<number[][]>(() => {
     const initialGrid = Array(4).fill(0).map(() => Array(4).fill(0));
     // Add two initial tiles
@@ -248,6 +269,147 @@ export default function App() {
     setGrid(newGrid);
     setGameScore(0);
   };
+
+  const initMemoryGame = () => {
+    if (lockoutUntil > Date.now()) return;
+
+    const newAttempts = gameAttempts + 1;
+    setGameAttempts(newAttempts);
+    localStorage.setItem('2048-attempts', newAttempts.toString());
+
+    if (newAttempts >= 3) {
+      const until = Date.now() + 24 * 60 * 60 * 1000;
+      setLockoutUntil(until);
+      localStorage.setItem('2048-lockout', until.toString());
+    }
+
+    const icons = ['Zap', 'Heart', 'Star', 'Moon', 'Sun', 'Cloud', 'Music', 'Camera'];
+    const cards = [...icons, ...icons]
+      .sort(() => Math.random() - 0.5)
+      .map((icon, index) => ({
+        id: index,
+        icon,
+        isFlipped: false,
+        isMatched: false,
+      }));
+    setMemoryCards(cards);
+    setFlippedCards([]);
+    setMemoryMoves(0);
+  };
+
+  const initSnakeGame = () => {
+    if (lockoutUntil > Date.now()) return;
+
+    const newAttempts = gameAttempts + 1;
+    setGameAttempts(newAttempts);
+    localStorage.setItem('2048-attempts', newAttempts.toString());
+
+    if (newAttempts >= 3) {
+      const until = Date.now() + 24 * 60 * 60 * 1000;
+      setLockoutUntil(until);
+      localStorage.setItem('2048-lockout', until.toString());
+    }
+
+    setSnake([{ x: 10, y: 10 }, { x: 10, y: 11 }, { x: 10, y: 12 }]);
+    setFood({ x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) });
+    setDirection('UP');
+    setIsSnakeGameOver(false);
+    setSnakeScore(0);
+    setIsSnakePaused(false);
+  };
+
+  const moveSnake = () => {
+    if (isSnakeGameOver || isSnakePaused) return;
+
+    const newSnake = [...snake];
+    const head = { ...newSnake[0] };
+
+    switch (direction) {
+      case 'UP': head.y -= 1; break;
+      case 'DOWN': head.y += 1; break;
+      case 'LEFT': head.x -= 1; break;
+      case 'RIGHT': head.x += 1; break;
+    }
+
+    // Check collisions
+    if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || newSnake.some(s => s.x === head.x && s.y === head.y)) {
+      setIsSnakeGameOver(true);
+      if (snakeScore > snakeHighScore) {
+        setSnakeHighScore(snakeScore);
+        localStorage.setItem('snake-highscore', snakeScore.toString());
+      }
+      return;
+    }
+
+    newSnake.unshift(head);
+
+    if (head.x === food.x && head.y === food.y) {
+      setSnakeScore(s => s + 10);
+      setFood({ x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) });
+    } else {
+      newSnake.pop();
+    }
+
+    setSnake(newSnake);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(moveSnake, 150);
+    return () => clearInterval(interval);
+  }, [snake, direction, isSnakeGameOver, isSnakePaused]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedGame !== 'snake') return;
+      switch (e.key) {
+        case 'ArrowUp': if (direction !== 'DOWN') setDirection('UP'); break;
+        case 'ArrowDown': if (direction !== 'UP') setDirection('DOWN'); break;
+        case 'ArrowLeft': if (direction !== 'RIGHT') setDirection('LEFT'); break;
+        case 'ArrowRight': if (direction !== 'LEFT') setDirection('RIGHT'); break;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [direction, selectedGame]);
+
+  const handleCardClick = (id: number) => {
+    if (flippedCards.length === 2 || memoryCards[id].isFlipped || memoryCards[id].isMatched) return;
+
+    const newFlipped = [...flippedCards, id];
+    setFlippedCards(newFlipped);
+
+    const newCards = memoryCards.map(card => 
+      card.id === id ? { ...card, isFlipped: true } : card
+    );
+    setMemoryCards(newCards);
+
+    if (newFlipped.length === 2) {
+      setMemoryMoves(m => m + 1);
+      const [first, second] = newFlipped;
+      if (memoryCards[first].icon === memoryCards[second].icon) {
+        setMemoryCards(prev => prev.map(card => 
+          card.id === first || card.id === second ? { ...card, isMatched: true } : card
+        ));
+        setFlippedCards([]);
+      } else {
+        setTimeout(() => {
+          setMemoryCards(prev => prev.map(card => 
+            card.id === first || card.id === second ? { ...card, isFlipped: false } : card
+          ));
+          setFlippedCards([]);
+        }, 1000);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (memoryCards.length > 0 && memoryCards.every(card => card.isMatched)) {
+      if (memoryMoves < memoryBest) {
+        setMemoryBest(memoryMoves);
+        localStorage.setItem('memory-best', memoryMoves.toString());
+      }
+    }
+  }, [memoryCards, memoryMoves, memoryBest]);
 
   useEffect(() => {
     const checkLockout = () => {
@@ -819,6 +981,7 @@ export default function App() {
             { id: 'visualizer', icon: Play, label: 'Visualizer', public: false },
             { id: 'speed-coding', icon: Zap, label: 'Speed', public: false },
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', public: false },
+            { id: 'games', icon: Gamepad2, label: 'Games', public: false },
             { id: 'meet', icon: Video, label: 'Meet', public: false },
             { id: 'about', icon: Info, label: 'About', public: false },
             ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
@@ -2171,7 +2334,37 @@ export default function App() {
                   <p className="text-zinc-400">Take a mental break and sharpen your logic.</p>
                 </div>
                 
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
+                    <button 
+                      onClick={() => setSelectedGame('2048')}
+                      className={cn(
+                        "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                        selectedGame === '2048' ? "bg-blue-500 text-black shadow-lg shadow-blue-500/20" : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      2048
+                    </button>
+                    <button 
+                      onClick={() => setSelectedGame('memory')}
+                      className={cn(
+                        "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                        selectedGame === 'memory' ? "bg-blue-500 text-black shadow-lg shadow-blue-500/20" : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      Memory Match
+                    </button>
+                    <button 
+                      onClick={() => setSelectedGame('snake')}
+                      className={cn(
+                        "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                        selectedGame === 'snake' ? "bg-blue-500 text-black shadow-lg shadow-blue-500/20" : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      Snake
+                    </button>
+                  </div>
+
                   <div className="glass px-6 py-3 rounded-2xl border-blue-500/20 bg-blue-500/5">
                     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Daily Attempts</div>
                     <div className="flex gap-1">
@@ -2205,93 +2398,272 @@ export default function App() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 glass p-8 rounded-[40px] border border-white/5 flex flex-col items-center">
-                  <div className="flex items-center justify-between w-full mb-8">
-                    <div>
-                      <h3 className="text-2xl font-black">2048</h3>
-                      <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Merge tiles to win</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="glass px-4 py-2 rounded-xl text-center">
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase">Score</div>
-                        <div className="text-lg font-black text-blue-500">{gameScore}</div>
+                  {selectedGame === '2048' ? (
+                    <>
+                      <div className="flex items-center justify-between w-full mb-8">
+                        <div>
+                          <h3 className="text-2xl font-black">2048</h3>
+                          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Merge tiles to win</p>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Score</div>
+                            <div className="text-lg font-black text-blue-500">{gameScore}</div>
+                          </div>
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Best</div>
+                            <div className="text-lg font-black text-yellow-500">{gameHighScore}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="glass px-4 py-2 rounded-xl text-center">
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase">Best</div>
-                        <div className="text-lg font-black text-yellow-500">{gameHighScore}</div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
-                    {grid.flat().map((val, i) => (
-                      <div 
-                        key={i} 
-                        className={cn(
-                          "rounded-lg flex items-center justify-center text-2xl font-black transition-all duration-100",
-                          val === 0 ? "bg-white/5 text-transparent" : 
-                          val === 2 ? "bg-zinc-200 text-zinc-900" :
-                          val === 4 ? "bg-zinc-100 text-zinc-900" :
-                          val === 8 ? "bg-orange-200 text-zinc-900" :
-                          val === 16 ? "bg-orange-300 text-zinc-900" :
-                          val === 32 ? "bg-orange-400 text-white" :
-                          val === 64 ? "bg-orange-500 text-white" :
-                          val === 128 ? "bg-yellow-200 text-zinc-900 shadow-[0_0_10px_rgba(254,240,138,0.5)]" :
-                          val === 256 ? "bg-yellow-300 text-zinc-900 shadow-[0_0_15px_rgba(253,224,71,0.6)]" :
-                          val === 512 ? "bg-yellow-400 text-zinc-900 shadow-[0_0_20px_rgba(250,204,21,0.7)]" :
-                          val === 1024 ? "bg-yellow-500 text-white shadow-[0_0_25px_rgba(234,179,8,0.8)]" :
-                          "bg-yellow-600 text-white shadow-[0_0_30px_rgba(202,138,4,0.9)]"
+                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
+                        {grid.flat().map((val, i) => (
+                          <div 
+                            key={i} 
+                            className={cn(
+                              "rounded-lg flex items-center justify-center text-2xl font-black transition-all duration-100",
+                              val === 0 ? "bg-white/5 text-transparent" : 
+                              val === 2 ? "bg-zinc-200 text-zinc-900" :
+                              val === 4 ? "bg-zinc-100 text-zinc-900" :
+                              val === 8 ? "bg-orange-200 text-zinc-900" :
+                              val === 16 ? "bg-orange-300 text-zinc-900" :
+                              val === 32 ? "bg-orange-400 text-white" :
+                              val === 64 ? "bg-orange-500 text-white" :
+                              val === 128 ? "bg-yellow-200 text-zinc-900 shadow-[0_0_10px_rgba(254,240,138,0.5)]" :
+                              val === 256 ? "bg-yellow-300 text-zinc-900 shadow-[0_0_15px_rgba(253,224,71,0.6)]" :
+                              val === 512 ? "bg-yellow-400 text-zinc-900 shadow-[0_0_20px_rgba(250,204,21,0.7)]" :
+                              val === 1024 ? "bg-yellow-500 text-white shadow-[0_0_25px_rgba(234,179,8,0.8)]" :
+                              "bg-yellow-600 text-white shadow-[0_0_30px_rgba(202,138,4,0.9)]"
+                            )}
+                          >
+                            {val !== 0 ? val : ''}
+                          </div>
+                        ))}
+                        
+                        {lockoutUntil > Date.now() && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                              <Clock className="w-10 h-10 text-red-500" />
+                            </div>
+                            <h4 className="text-2xl font-black mb-4">Daily Limit Reached</h4>
+                            <p className="text-zinc-400 mb-8 max-w-xs">
+                              You've completed your 3 daily sessions. Take a break and focus on your learning goals!
+                            </p>
+                            <div className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-2">Next Session Available In</div>
+                            <div className="text-3xl font-black text-white">
+                              {(() => {
+                                const diff = lockoutUntil - Date.now();
+                                const hours = Math.floor(diff / (1000 * 60 * 60));
+                                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                                return `${hours}h ${mins}m ${secs}s`;
+                              })()}
+                            </div>
+                          </div>
                         )}
-                      >
-                        {val !== 0 ? val : ''}
-                      </div>
-                    ))}
-                    
-                    {lockoutUntil > Date.now() && (
-                      <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8">
-                        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
-                          <Clock className="w-10 h-10 text-red-500" />
-                        </div>
-                        <h4 className="text-2xl font-black mb-4">Daily Limit Reached</h4>
-                        <p className="text-zinc-400 mb-8 max-w-xs">
-                          You've completed your 3 daily sessions. Take a break and focus on your learning goals!
-                        </p>
-                        <div className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-2">Next Session Available In</div>
-                        <div className="text-3xl font-black text-white">
-                          {(() => {
-                            const diff = lockoutUntil - Date.now();
-                            const hours = Math.floor(diff / (1000 * 60 * 60));
-                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            const secs = Math.floor((diff % (1000 * 60)) / 1000);
-                            return `${hours}h ${mins}m ${secs}s`;
-                          })()}
-                        </div>
-                      </div>
-                    )}
 
-                    {grid.flat().every(v => v !== 0) && lockoutUntil <= Date.now() && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-6">
-                        <Zap className="w-12 h-12 text-yellow-500 mb-4" />
-                        <h4 className="text-xl font-bold mb-2">Game Over!</h4>
-                        <p className="text-sm text-zinc-400 mb-6">Final Score: {gameScore}</p>
-                        <button 
-                          onClick={initGame}
-                          className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95"
-                        >
-                          Try Again
-                        </button>
+                        {grid.flat().every(v => v !== 0) && lockoutUntil <= Date.now() && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-6">
+                            <Zap className="w-12 h-12 text-yellow-500 mb-4" />
+                            <h4 className="text-xl font-bold mb-2">Game Over!</h4>
+                            <p className="text-sm text-zinc-400 mb-6">Final Score: {gameScore}</p>
+                            <button 
+                              onClick={initGame}
+                              className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95"
+                            >
+                              Try Again
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  {lockoutUntil <= Date.now() && (
-                    <div className="mt-8 flex gap-4">
-                      <button 
-                        onClick={initGame}
-                        className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-                      >
-                        {gameAttempts === 0 ? 'Start First Game' : 'New Session'}
-                      </button>
-                    </div>
+                      
+                      {lockoutUntil <= Date.now() && (
+                        <div className="mt-8 flex gap-4">
+                          <button 
+                            onClick={initGame}
+                            className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                          >
+                            {gameAttempts === 0 ? 'Start First Game' : 'New Session'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : selectedGame === 'memory' ? (
+                    <>
+                      <div className="flex items-center justify-between w-full mb-8">
+                        <div>
+                          <h3 className="text-2xl font-black">Memory Match</h3>
+                          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Find all pairs</p>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Moves</div>
+                            <div className="text-lg font-black text-blue-500">{memoryMoves}</div>
+                          </div>
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Best</div>
+                            <div className="text-lg font-black text-yellow-500">{memoryBest === Infinity ? '-' : memoryBest}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
+                        {memoryCards.length > 0 ? (
+                          memoryCards.map((card) => (
+                            <button 
+                              key={card.id}
+                              onClick={() => handleCardClick(card.id)}
+                              className={cn(
+                                "rounded-lg flex items-center justify-center text-2xl transition-all duration-300 transform preserve-3d",
+                                card.isFlipped || card.isMatched ? "bg-blue-500 text-black rotate-y-180" : "bg-white/5 text-transparent"
+                              )}
+                            >
+                              {(card.isFlipped || card.isMatched) && (
+                                <div className="rotate-y-180">
+                                  {(() => {
+                                    const Icon = { Zap, Heart, Star, Moon, Sun, Cloud, Music, Camera }[card.icon] || Zap;
+                                    return <Icon className="w-8 h-8" />;
+                                  })()}
+                                </div>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <button 
+                              onClick={initMemoryGame}
+                              className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                            >
+                              Start Game
+                            </button>
+                          </div>
+                        )}
+
+                        {lockoutUntil > Date.now() && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                              <Clock className="w-10 h-10 text-red-500" />
+                            </div>
+                            <h4 className="text-2xl font-black mb-4">Daily Limit Reached</h4>
+                            <p className="text-zinc-400 mb-8 max-w-xs">
+                              You've completed your 3 daily sessions. Take a break and focus on your learning goals!
+                            </p>
+                          </div>
+                        )}
+
+                        {memoryCards.length > 0 && memoryCards.every(c => c.isMatched) && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-6">
+                            <Trophy className="w-12 h-12 text-yellow-500 mb-4" />
+                            <h4 className="text-xl font-bold mb-2">Congratulations!</h4>
+                            <p className="text-sm text-zinc-400 mb-6">Moves: {memoryMoves}</p>
+                            <button 
+                              onClick={initMemoryGame}
+                              className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95"
+                            >
+                              Play Again
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {memoryCards.length > 0 && !memoryCards.every(c => c.isMatched) && lockoutUntil <= Date.now() && (
+                        <div className="mt-8 flex gap-4">
+                          <button 
+                            onClick={initMemoryGame}
+                            className="px-8 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-all active:scale-95 border border-white/10"
+                          >
+                            Reset Game
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between w-full mb-8">
+                        <div>
+                          <h3 className="text-2xl font-black">Snake</h3>
+                          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Eat to grow</p>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Score</div>
+                            <div className="text-lg font-black text-blue-500">{snakeScore}</div>
+                          </div>
+                          <div className="glass px-4 py-2 rounded-xl text-center">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase">Best</div>
+                            <div className="text-lg font-black text-yellow-500">{snakeHighScore}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-1 grid grid-cols-20 grid-rows-20 gap-0 relative overflow-hidden">
+                        {Array.from({ length: 400 }).map((_, i) => {
+                          const x = i % 20;
+                          const y = Math.floor(i / 20);
+                          const isSnake = snake.some(s => s.x === x && s.y === y);
+                          const isFood = food.x === x && food.y === y;
+                          const isHead = snake[0]?.x === x && snake[0]?.y === y;
+                          
+                          return (
+                            <div 
+                              key={i}
+                              className={cn(
+                                "w-full h-full rounded-[2px]",
+                                isHead ? "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)] z-10" :
+                                isSnake ? "bg-blue-600/80" :
+                                isFood ? "bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.6)]" :
+                                "bg-white/[0.02]"
+                              )}
+                            />
+                          );
+                        })}
+
+                        {isSnakePaused && !isSnakeGameOver && lockoutUntil <= Date.now() && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                            <button 
+                              onClick={initSnakeGame}
+                              className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                            >
+                              Start Game
+                            </button>
+                          </div>
+                        )}
+
+                        {isSnakeGameOver && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
+                            <Skull className="w-12 h-12 text-red-500 mb-4" />
+                            <h4 className="text-2xl font-black mb-2">Game Over!</h4>
+                            <p className="text-zinc-400 mb-8">Final Score: {snakeScore}</p>
+                            <button 
+                              onClick={initSnakeGame}
+                              className="px-8 py-3 bg-blue-500 text-black font-bold rounded-xl hover:bg-blue-400 transition-all active:scale-95"
+                            >
+                              Try Again
+                            </button>
+                          </div>
+                        )}
+
+                        {lockoutUntil > Date.now() && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-8">
+                            <Clock className="w-10 h-10 text-red-500 mb-4" />
+                            <h4 className="text-2xl font-black mb-2">Daily Limit Reached</h4>
+                            <p className="text-zinc-400">Take a break!</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {!isSnakePaused && !isSnakeGameOver && (
+                        <div className="mt-8 flex gap-4">
+                          <button 
+                            onClick={() => setIsSnakePaused(true)}
+                            className="px-8 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-all active:scale-95 border border-white/10"
+                          >
+                            Pause
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -2303,49 +2675,130 @@ export default function App() {
                     </h3>
                     
                     <div className="space-y-6">
-                      <div>
-                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Controls</div>
-                        <div className="grid grid-cols-3 gap-2 max-w-[120px]">
-                          <div />
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
-                            <ChevronUp className="w-4 h-4" />
+                      {selectedGame === '2048' ? (
+                        <>
+                          <div>
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Controls</div>
+                            <div className="grid grid-cols-3 gap-2 max-w-[120px]">
+                              <div />
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronUp className="w-4 h-4" />
+                              </div>
+                              <div />
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronLeft className="w-4 h-4" />
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronDown className="w-4 h-4" />
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronRight className="w-4 h-4" />
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 mt-2">Use Arrow Keys to move tiles</p>
                           </div>
-                          <div />
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
-                            <ChevronLeft className="w-4 h-4" />
-                          </div>
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
-                            <ChevronDown className="w-4 h-4" />
-                          </div>
-                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-zinc-500 mt-2">Use Arrow Keys to move tiles</p>
-                      </div>
 
-                      <div className="space-y-4">
-                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Instructions</div>
-                        <ol className="space-y-3 text-sm text-zinc-400">
-                          <li className="flex gap-3">
-                            <span className="text-blue-500 font-bold">01.</span>
-                            <span>When two tiles with the same number touch, they <b>merge into one</b>!</span>
-                          </li>
-                          <li className="flex gap-3">
-                            <span className="text-blue-500 font-bold">02.</span>
-                            <span>Every move spawns a new tile (2 or 4) in an empty spot.</span>
-                          </li>
-                          <li className="flex gap-3">
-                            <span className="text-blue-500 font-bold">03.</span>
-                            <span>Plan your moves to keep the largest tiles in a corner.</span>
-                          </li>
-                        </ol>
-                      </div>
+                          <div className="space-y-4">
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Instructions</div>
+                            <ol className="space-y-3 text-sm text-zinc-400">
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">01.</span>
+                                <span>When two tiles with the same number touch, they <b>merge into one</b>!</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">02.</span>
+                                <span>Every move spawns a new tile (2 or 4) in an empty spot.</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">03.</span>
+                                <span>Plan your moves to keep the largest tiles in a corner.</span>
+                              </li>
+                            </ol>
+                          </div>
+                        </>
+                      ) : selectedGame === 'memory' ? (
+                        <>
+                          <div>
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Controls</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <MousePointer2 className="w-4 h-4" />
+                              </div>
+                              <p className="text-[10px] text-zinc-500">Click cards to reveal them</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Instructions</div>
+                            <ol className="space-y-3 text-sm text-zinc-400">
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">01.</span>
+                                <span>Flip over two cards to find a matching pair of icons.</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">02.</span>
+                                <span>If they match, they stay face up. If not, they flip back.</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">03.</span>
+                                <span>Remember the positions of icons to clear the board in fewer moves!</span>
+                              </li>
+                            </ol>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Controls</div>
+                            <div className="grid grid-cols-3 gap-2 max-w-[120px]">
+                              <div />
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronUp className="w-4 h-4" />
+                              </div>
+                              <div />
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronLeft className="w-4 h-4" />
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronDown className="w-4 h-4" />
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                                <ChevronRight className="w-4 h-4" />
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 mt-2">Use Arrow Keys to change direction</p>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Instructions</div>
+                            <ol className="space-y-3 text-sm text-zinc-400">
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">01.</span>
+                                <span>Control the snake to eat the red food and grow longer.</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">02.</span>
+                                <span>Don't hit the walls or your own tail, or it's game over!</span>
+                              </li>
+                              <li className="flex gap-3">
+                                <span className="text-blue-500 font-bold">03.</span>
+                                <span>The faster you eat, the higher your score will climb.</span>
+                              </li>
+                            </ol>
+                          </div>
+                        </>
+                      )}
 
                       <div className="pt-4 border-t border-white/5">
                         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Winning Rule</div>
                         <p className="text-sm text-zinc-400">
-                          Create a tile with the number <span className="text-yellow-500 font-bold">2048</span> to win the game!
+                          {selectedGame === '2048' ? (
+                            <>Create a tile with the number <span className="text-yellow-500 font-bold">2048</span> to win!</>
+                          ) : selectedGame === 'memory' ? (
+                            <>Match all <span className="text-blue-500 font-bold">8 pairs</span> of icons to clear the board!</>
+                          ) : (
+                            <>Eat as much food as possible to set a new <span className="text-blue-500 font-bold">High Score</span>!</>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -2354,7 +2807,7 @@ export default function App() {
                   <div className="glass p-8 rounded-[40px] border border-white/5 bg-blue-500/5">
                     <h3 className="text-lg font-bold mb-2">Daily Play Policy</h3>
                     <p className="text-xs text-zinc-500 leading-relaxed">
-                      To ensure a balanced learning experience, we limit gaming to 3 sessions per day. Use these breaks to recharge your mind!
+                      To ensure a balanced learning experience, we limit gaming to 3 sessions per day across all games. Use these breaks to recharge your mind!
                     </p>
                   </div>
                 </div>
