@@ -55,6 +55,7 @@ import {
   LogOut,
   Play,
   Moon,
+  Sun,
   LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -389,6 +390,20 @@ export default function App() {
   const [usernameInput, setUsernameInput] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
   const [currentCaptcha, setCurrentCaptcha] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -782,12 +797,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
+    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#0a0a0a]">
       <AnimatePresence>
         {isAddingTopic && <BootingLoader />}
       </AnimatePresence>
       {/* Navigation */}
-      <nav className="h-16 border-b border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
+      <nav className="h-16 border-b border-black/5 dark:border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('landing')}>
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)]">
             <Terminal className="text-black w-5 h-5" />
@@ -797,7 +812,7 @@ export default function App() {
           </span>
         </div>
         
-        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full border border-white/10 overflow-x-auto max-w-[60vw]">
+        <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-full border border-black/5 dark:border-white/10 overflow-x-auto max-w-[60vw]">
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
             { id: 'search', icon: Search, label: 'Search', public: false },
@@ -815,7 +830,7 @@ export default function App() {
                 "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all relative overflow-hidden group whitespace-nowrap",
                 activeTab === tab.id 
                   ? "bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
               )}
             >
               <tab.icon className="w-4 h-4" />
@@ -836,7 +851,7 @@ export default function App() {
           {isAuthenticated && (
             <button
               onClick={() => setShowSilentStudy(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-all whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 dark:hover:bg-purple-500/30 transition-all whitespace-nowrap"
             >
               <Moon className="w-4 h-4" />
               <span className="hidden lg:inline">Focus</span>
@@ -845,8 +860,15 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/10 dark:border-blue-500/20">
               <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
               <span className="text-xs font-mono text-blue-400 font-bold">{masteredCount} Mastered</span>
               <button 
@@ -1480,7 +1502,7 @@ export default function App() {
                     <Zap className="w-3 h-3 fill-current" />
                     AI-Powered Global Learning
                   </motion.div>
-                  <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight">
+                  <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight text-zinc-900 dark:text-white">
                     Master Any <span className="text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">CS Concept</span>
                   </h1>
                   <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
@@ -1497,7 +1519,7 @@ export default function App() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Enter a concept (e.g., Dynamic Programming, Kubernetes, Rust Ownership...)"
-                      className="w-full h-16 bg-zinc-900 border border-white/10 rounded-2xl px-6 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
+                      className="w-full h-16 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-2xl px-6 pr-32 text-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600 shadow-sm dark:shadow-none"
                     />
                     <button 
                       type="submit"
@@ -1521,7 +1543,7 @@ export default function App() {
                     <motion.div 
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="glass rounded-3xl p-8 relative overflow-hidden"
+                      className="glass rounded-3xl p-8 relative overflow-hidden border border-black/5 dark:border-white/10"
                     >
                       <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Globe className="w-32 h-32 text-blue-500" />
@@ -1617,7 +1639,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                   <div className="lg:col-span-2 glass rounded-3xl p-8 relative overflow-hidden">
-                    <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 mb-8">
+                    <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-black/5 dark:border-white/10 mb-8">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${currentProgress}%` }}
@@ -1633,7 +1655,7 @@ export default function App() {
                         </div>
                       ) : (
                         progress.customTopics.map((topic, i) => (
-                          <div key={topic.id} className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                          <div key={topic.id} className="p-6 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="font-bold text-lg">{topic.title}</h3>
                               <div className="flex items-center gap-2">
@@ -1709,164 +1731,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-
-
-
-
-
-                                        <div className="h-px bg-white/5 w-full" />
-                                        <div className="flex items-center justify-between">
-                                          <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                                            <Globe className="w-3 h-3" />
-                                            Comprehensive Problem List ({relatedProblems.length})
-                                          </h4>
-                                          {relatedProblems.length > 10 && (
-                                            <button 
-                                              onClick={() => setShowMoreProblems(prev => ({ ...prev, [topic.id]: !showAll }))}
-                                              className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
-                                            >
-                                              {showAll ? 'Show Less' : `Show All (${relatedProblems.length})`}
-                                            </button>
-                                          )}
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                          {visibleRelated.map((prob: any) => (
-                                            <div 
-                                              key={prob.id}
-                                              className={cn(
-                                                "flex items-center justify-between p-3 rounded-xl border transition-all",
-                                                prob.completed ? "bg-blue-500/10 border-blue-500/20" : "bg-white/5 border-white/5 hover:border-white/10"
-                                              )}
-                                            >
-                                              <div className="flex items-center gap-3 overflow-hidden">
-                                                <button 
-                                                  onClick={() => {
-                                                    const newProgress = progressService.toggleProblemCompletion(topic.id, prob.id);
-                                                    setProgress(newProgress);
-                                                    const topicAfter = newProgress.customTopics.find(t => t.id === topic.id);
-                                                    if (topicAfter?.completed && !topic.completed) {
-                                                      triggerConfetti();
-                                                    }
-                                                  }}
-                                                  className="shrink-0"
-                                                >
-                                                  {prob.completed ? (
-                                                    <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                                                  ) : (
-                                                    <Circle className="w-5 h-5 text-zinc-700" />
-                                                  )}
-                                                </button>
-                                                <div className="flex flex-col overflow-hidden">
-                                                  <span className={cn(
-                                                    "text-sm font-medium truncate",
-                                                    prob.completed ? "text-zinc-500 line-through" : "text-zinc-300"
-                                                  )}>
-                                                    {prob.title}
-                                                  </span>
-                                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">{prob.platform}</span>
-                                                </div>
-                                              </div>
-                                              <a 
-                                                href={prob.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 text-zinc-600 hover:text-blue-400 transition-colors shrink-0"
-                                              >
-                                                <ExternalLink className="w-4 h-4" />
-                                              </a>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </>
-                                  : (
-                                  <div className="text-center py-4">
-                                    <p className="text-xs text-zinc-500">No specific challenges found for this topic.</p>
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })
-                )}
-              </div>
-
-              {currentProgress === 100 && progress.customTopics.length > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-12 p-8 glass rounded-3xl border-blue-500/50 bg-blue-500/5 text-center relative overflow-hidden"
-                >
-                  <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
-                  
-                  <Award className="w-16 h-16 text-blue-400 mx-auto mb-4 animate-pulse" />
-                  <h2 className="text-3xl font-black mb-2">Congratulations, {progress.userName || 'Scholar'}!</h2>
-                  <p className="text-zinc-400 mb-8 max-w-md mx-auto">
-                    You have successfully completed your custom roadmap. You are now officially a Master of your selected CS concepts.
-                  </p>
-                  
-                  <button 
-                    onClick={downloadCertificate}
-                    className="px-8 py-4 bg-blue-500 text-black rounded-2xl font-bold flex items-center gap-2 mx-auto hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/30 active:scale-95"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download Certificate
-                  </button>
-
-                  {/* Hidden Certificate for Generation */}
-                  <div className="fixed left-[-9999px] top-0">
-                    <div 
-                      ref={certificateRef}
-                      style={{ backgroundColor: '#0a0a0a', borderColor: '#3b82f6' }}
-                      className="w-[1000px] h-[700px] border-[20px] pt-20 px-20 pb-28 flex flex-col items-center justify-between text-white font-sans relative"
-                    >
-                      <div className="absolute inset-0 opacity-5 pointer-events-none">
-                        <div style={{ background: 'radial-gradient(circle at center, #3b82f6, transparent, transparent)' }} className="w-full h-full" />
-                      </div>
-                      
-                      <div className="text-center w-full">
-                        <div style={{ backgroundColor: '#3b82f6' }} className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8">
-                          <Terminal style={{ color: '#000000' }} className="w-12 h-12" />
-                        </div>
-                        <h1 className="text-6xl font-black tracking-tighter mb-4 w-full text-center">CERTIFICATE OF EXCELLENCE</h1>
-                        <div className="flex justify-center w-full mb-8">
-                          <div style={{ backgroundColor: '#3b82f6' }} className="h-1 w-64" />
-                        </div>
-                        <p style={{ color: '#a1a1aa' }} className="text-xl uppercase tracking-[0.3em] font-bold">This is to certify that</p>
-                      </div>
-
-                      <div className="text-center">
-                        <h2 style={{ color: '#60a5fa' }} className="text-8xl font-black mb-4">{progress.userName || 'Student'}</h2>
-                        <p style={{ color: '#d4d4d8' }} className="text-2xl max-w-2xl mx-auto leading-relaxed">
-                          has successfully completed the global computer science roadmap and demonstrated mastery over advanced technical concepts at Shanmukh AI VidyaPeettham.
-                        </p>
-                      </div>
-
-                      <div className="w-full flex justify-between items-end px-4">
-                        <div className="text-left">
-                          <div style={{ backgroundColor: '#3f3f46' }} className="h-px w-48 mb-4" />
-                          <p style={{ color: '#71717a' }} className="text-sm font-bold uppercase tracking-widest">Date: {new Date().toLocaleDateString()}</p>
-                        </div>
-                        <div className="text-center mb-[-10px]">
-                          <Award style={{ color: '#3b82f6' }} className="w-20 h-20 mb-2" />
-                          <p style={{ color: '#3b82f6' }} className="text-xs font-bold uppercase tracking-widest">Official Seal</p>
-                        </div>
-                        <div className="text-right">
-                          <div style={{ backgroundColor: '#3f3f46' }} className="h-px w-48 mb-4" />
-                          <p style={{ color: '#71717a' }} className="text-sm font-bold uppercase tracking-widest">Shanmukh AI VidyaPeettham</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
             </motion.div>
           )}
 
@@ -2185,7 +2049,7 @@ export default function App() {
                           key={user.email} 
                           className={cn(
                             "flex items-center justify-between p-3 rounded-2xl transition-all",
-                            user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-white/5 border border-transparent"
+                            user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-black/5 dark:bg-white/5 border border-transparent"
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -2210,7 +2074,7 @@ export default function App() {
                   </div>
 
                   {/* Priority Revision */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5 bg-red-500/5">
+                  <div className="glass p-8 rounded-[40px] border border-black/5 dark:border-white/5 bg-red-500/5">
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                       <RefreshCw className="w-5 h-5 text-red-400" />
                       Priority Revision
@@ -2233,14 +2097,14 @@ export default function App() {
               </div>
 
               {/* Activity Feed (Full Width) */}
-              <div className="mt-8 glass p-8 rounded-[40px] border border-white/5">
+              <div className="mt-8 glass p-8 rounded-[40px] border border-black/5 dark:border-white/5">
                 <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
                   <Activity className="w-6 h-6 text-blue-500" />
                   Recent Activity
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {progress.completionHistory.slice(-9).reverse().map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
                         item.type === 'problem' ? "bg-blue-500/10 text-blue-400" : "bg-purple-500/10 text-purple-400"
@@ -2506,7 +2370,7 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="max-w-6xl mx-auto p-8"
             >
-              <div className="glass rounded-[40px] overflow-hidden border border-white/5 mb-12">
+              <div className="glass rounded-[40px] overflow-hidden border border-black/5 dark:border-white/10 mb-12">
                 <div className="h-64 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 relative">
                   <div className="absolute -bottom-16 left-12">
                     <div className="w-40 h-40 rounded-3xl bg-zinc-900 border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl overflow-hidden">
@@ -2525,7 +2389,7 @@ export default function App() {
                       <p className="text-zinc-500">KL University • India</p>
                     </div>
                     <div className="flex gap-3">
-                      <a href="https://github.com/PavanShanmukh" target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5">
+                      <a href="https://github.com/PavanShanmukh" target="_blank" rel="noopener noreferrer" className="p-4 bg-black/5 dark:bg-white/5 rounded-2xl hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/5">
                         <Github className="w-6 h-6" />
                       </a>
                       <button className="px-6 py-4 bg-blue-500 text-black font-bold rounded-2xl hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20">
@@ -2535,17 +2399,17 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
                       <div className="text-blue-400 mb-2"><Award className="w-6 h-6" /></div>
                       <div className="text-sm font-bold mb-1">Specialization</div>
                       <div className="text-xs text-zinc-500">Distributed Ledger Analytics</div>
                     </div>
-                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
                       <div className="text-blue-400 mb-2"><Code2 className="w-6 h-6" /></div>
                       <div className="text-sm font-bold mb-1">Experience</div>
                       <div className="text-xs text-zinc-500">Full Stack & Security</div>
                     </div>
-                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
                       <div className="text-purple-400 mb-2"><Globe className="w-6 h-6" /></div>
                       <div className="text-sm font-bold mb-1">Interests</div>
                       <div className="text-xs text-zinc-500">AI, Blockchain, CyberSec</div>
@@ -2591,7 +2455,7 @@ export default function App() {
                             repo: "https://github.com/PavanShanmukh/ledger-analytics"
                           }
                         ].map((project, i) => (
-                          <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group">
+                          <div key={i} className="p-8 rounded-3xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-blue-500/30 transition-all group">
                             <h4 className="text-xl font-bold mb-4 group-hover:text-blue-400 transition-colors">{project.title}</h4>
                             <p className="text-zinc-400 text-sm leading-relaxed mb-6">{project.description}</p>
                             <div className="flex flex-wrap gap-2 mb-8">
@@ -2633,7 +2497,7 @@ export default function App() {
             >
               {!isMeetActive ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden">
+                  <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden border border-black/5 dark:border-white/10">
                     <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Video className="w-10 h-10 text-blue-500" />
@@ -2649,7 +2513,7 @@ export default function App() {
                       <select 
                         value={studentInstruction}
                         onChange={(e) => setStudentInstruction(e.target.value)}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
+                        className="w-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-xl p-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
                       >
                         <option value="A curious beginner who asks deep questions">Curious Beginner</option>
                         <option value="A skeptical student who needs proof for everything">Skeptical Expert</option>
@@ -2670,7 +2534,7 @@ export default function App() {
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 overflow-hidden">
                   {/* Main Video Area */}
                   <div className="lg:col-span-3 flex flex-col gap-4">
-                    <div className="flex-1 relative bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+                    <div className="flex-1 relative bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl">
                       {/* Seminar Hall Background */}
                       <div className="absolute inset-0 pointer-events-none opacity-40">
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
@@ -2828,7 +2692,7 @@ export default function App() {
                   <div className="lg:col-span-1 flex flex-col gap-6 overflow-hidden">
                     {/* Participants List */}
                     <div className="flex flex-col glass rounded-3xl overflow-hidden border border-white/5 max-h-[40%]">
-                      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+                      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-blue-400" />
                           <span className="font-bold text-sm">Participants</span>
@@ -2844,7 +2708,7 @@ export default function App() {
                         ].map((participant, i) => (
                           <div 
                             key={i}
-                            className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all"
+                            className="flex items-center gap-3 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all"
                           >
                             <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-black font-black text-xs", participant.color)}>
                               {participant.name[0]}
@@ -2870,7 +2734,7 @@ export default function App() {
 
                     {/* Class Chat */}
                     <div className="flex-1 flex flex-col glass rounded-3xl overflow-hidden border border-white/5">
-                      <div className="p-4 border-b border-white/10 flex items-center gap-2 bg-white/5">
+                      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-2 bg-black/5 dark:bg-white/5">
                         <MessageSquare className="w-4 h-4 text-blue-400" />
                         <span className="font-bold text-sm">Class Chat</span>
                       </div>
@@ -2899,7 +2763,7 @@ export default function App() {
                               "max-w-[85%] p-3 rounded-2xl text-sm shadow-sm",
                               msg.role === 'teacher' 
                                 ? "bg-blue-500 text-black rounded-tr-none" 
-                                : "bg-white/5 border border-white/10 rounded-tl-none"
+                                : "bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-tl-none"
                             )}>
                               {msg.text}
                             </div>
@@ -2908,7 +2772,7 @@ export default function App() {
                         {isStudentTyping && (
                           <div className="flex flex-col items-start">
                             <span className="text-[10px] text-zinc-500 mb-1 uppercase tracking-widest font-bold">Student</span>
-                            <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none">
+                            <div className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 p-3 rounded-2xl rounded-tl-none">
                               <div className="flex gap-1">
                                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
                                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -2919,14 +2783,14 @@ export default function App() {
                         )}
                       </div>
 
-                      <form onSubmit={handleSendMessage} className="p-4 bg-white/5 border-t border-white/10">
+                      <form onSubmit={handleSendMessage} className="p-4 bg-black/5 dark:bg-white/5 border-t border-black/5 dark:border-white/10">
                         <div className="relative">
                           <input 
                             type="text"
                             value={meetInput}
                             onChange={(e) => setMeetInput(e.target.value)}
                             placeholder="Teach something..."
-                            className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                           />
                           <button 
                             type="submit"

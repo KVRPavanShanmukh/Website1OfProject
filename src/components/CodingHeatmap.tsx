@@ -12,7 +12,7 @@ export const CodingHeatmap: React.FC<CodingHeatmapProps> = ({ data }) => {
   const days = eachDayOfInterval({ start: startDate, end: today });
 
   const getIntensity = (count: number) => {
-    if (!count) return 'bg-white/5';
+    if (!count) return 'bg-black/5 dark:bg-white/5';
     if (count < 2) return 'bg-emerald-500/20';
     if (count < 4) return 'bg-emerald-500/40';
     if (count < 6) return 'bg-emerald-500/60';
@@ -20,7 +20,7 @@ export const CodingHeatmap: React.FC<CodingHeatmapProps> = ({ data }) => {
   };
 
   return (
-    <div className="glass p-8 rounded-[40px] border border-white/5">
+    <div className="glass p-8 rounded-[40px] border border-black/5 dark:border-white/5">
       <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         Coding Activity
@@ -46,7 +46,7 @@ export const CodingHeatmap: React.FC<CodingHeatmapProps> = ({ data }) => {
       <div className="mt-6 flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
         <span>Less</span>
         <div className="flex gap-1">
-          <div className="w-3 h-3 rounded-sm bg-white/5" />
+          <div className="w-3 h-3 rounded-sm bg-black/5 dark:bg-white/5" />
           <div className="w-3 h-3 rounded-sm bg-emerald-500/20" />
           <div className="w-3 h-3 rounded-sm bg-emerald-500/40" />
           <div className="w-3 h-3 rounded-sm bg-emerald-500/60" />

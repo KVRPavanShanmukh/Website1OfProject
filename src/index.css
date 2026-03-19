@@ -7,17 +7,17 @@
 
 @layer base {
   body {
-    @apply bg-[#0a0a0a] text-zinc-100 antialiased;
+    @apply bg-zinc-50 text-zinc-900 dark:bg-[#0a0a0a] dark:text-zinc-100 antialiased transition-colors duration-300;
     font-family: var(--font-sans);
   }
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
+  @apply bg-white/40 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-sm dark:shadow-none;
 }
 
 .neon-glow {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  @apply shadow-[0_0_20px_rgba(59,130,246,0.1)] dark:shadow-[0_0_20px_rgba(59,130,246,0.2)];
 }
 
 /* Custom scrollbar */
@@ -28,5 +28,5 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  @apply bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 transition-colors;
 }
