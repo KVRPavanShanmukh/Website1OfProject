@@ -82,7 +82,6 @@ import { cn } from './lib/utils';
 import { CodingHeatmap } from './components/CodingHeatmap';
 import { SpeedCoding } from './components/SpeedCoding';
 import { SilentStudy } from './components/SilentStudy';
-import { ConceptGraph } from './components/ConceptGraph';
 
 type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'speed-coding' | 'silent-study';
 
@@ -218,6 +217,7 @@ export default function App() {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [memoryMoves, setMemoryMoves] = useState(0);
   const [memoryBest, setMemoryBest] = useState(() => Number(localStorage.getItem('memory-best')) || Infinity);
+  const [topicToDelete, setTopicToDelete] = useState<{ id: string, title: string } | null>(null);
   
   // Snake Game State
   const [snake, setSnake] = useState<{ x: number, y: number }[]>([]);
@@ -959,9 +959,45 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#0a0a0a]">
+    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#0a0a0a] transition-colors duration-500">
       <AnimatePresence>
         {isAddingTopic && <BootingLoader />}
+        {topicToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-md glass rounded-3xl p-8 border border-white/10"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mb-6">
+                <Trash2 className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Delete Topic?</h3>
+              <p className="text-zinc-400 mb-8">
+                Are you sure you want to remove <span className="text-white font-bold">"{topicToDelete.title}"</span> from your roadmap? This action cannot be undone.
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setTopicToDelete(null)}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    const newProgress = progressService.deleteCustomTopic(topicToDelete.id);
+                    setProgress(newProgress);
+                    setTopicToDelete(null);
+                  }}
+                  className="flex-1 py-3 bg-red-500 text-black rounded-xl font-bold hover:bg-red-400 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
       {/* Navigation */}
       <nav className="h-16 border-b border-black/5 dark:border-white/10 flex items-center justify-between px-6 glass sticky top-0 z-50">
@@ -978,7 +1014,6 @@ export default function App() {
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
             { id: 'search', icon: Search, label: 'Search', public: false },
-            { id: 'visualizer', icon: Play, label: 'Visualizer', public: false },
             { id: 'speed-coding', icon: Zap, label: 'Speed', public: false },
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', public: false },
             { id: 'games', icon: Gamepad2, label: 'Games', public: false },
@@ -1023,13 +1058,30 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <Sun className={cn("w-4 h-4 transition-colors duration-500", isDarkMode ? "text-zinc-600" : "text-yellow-500")} />
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={cn(
+                "relative w-11 h-6 rounded-full transition-all duration-500 flex items-center px-1 group",
+                isDarkMode ? "bg-blue-600/40 border-blue-500/30" : "bg-zinc-200 border-zinc-300",
+                "border"
+              )}
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              <motion.div
+                layout
+                className={cn(
+                  "w-4 h-4 rounded-full shadow-lg flex items-center justify-center transition-colors duration-500",
+                  isDarkMode ? "bg-blue-400" : "bg-white"
+                )}
+                initial={false}
+                animate={{ x: isDarkMode ? 20 : 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </button>
+            <Moon className={cn("w-4 h-4 transition-colors duration-500", isDarkMode ? "text-blue-400" : "text-zinc-400")} />
+          </div>
           {isAuthenticated ? (
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/10 dark:border-blue-500/20">
               <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />
@@ -1782,11 +1834,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Concept Dependency Graph */}
-              <div className="mb-20 pt-20 border-t border-white/5">
-                <ConceptGraph completedTopics={progress.completedTopics} />
-              </div>
-
               {/* Roadmap Section */}
               <div className="pt-20 border-t border-white/5">
                 <div className="flex items-center justify-between mb-12">
@@ -1820,12 +1867,40 @@ export default function App() {
                         progress.customTopics.map((topic, i) => (
                           <div key={topic.id} className="p-6 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
                             <div className="flex items-center justify-between mb-4">
-                              <h3 className="font-bold text-lg">{topic.title}</h3>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                                  {topic.problems.filter(p => p.completed).length} / {topic.problems.length} Problems
-                                </span>
-                                {topic.completed && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => {
+                                    const newProgress = progressService.toggleCustomTopic(topic.id);
+                                    setProgress(newProgress);
+                                    if (newProgress.customTopics.find(t => t.id === topic.id)?.completed) {
+                                      triggerConfetti();
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
+                                    topic.completed ? "bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : "border-zinc-700 hover:border-emerald-500"
+                                  )}
+                                  title={topic.completed ? "Mark as Incomplete" : "Mark Topic as Completed"}
+                                >
+                                  {topic.completed && <CheckCircle2 className="w-4 h-4 text-black" />}
+                                </button>
+                                <h3 className={cn("font-bold text-lg transition-colors", topic.completed ? "text-emerald-400" : "text-zinc-100")}>
+                                  {topic.title}
+                                </h3>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                    {topic.problems.filter(p => p.completed).length} / {topic.problems.length} Problems
+                                  </span>
+                                </div>
+                                <button 
+                                  onClick={() => setTopicToDelete({ id: topic.id, title: topic.title })}
+                                  className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
+                                  title="Delete Topic"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
                             <div className="space-y-6">

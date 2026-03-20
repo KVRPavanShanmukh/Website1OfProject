@@ -7,13 +7,18 @@
 
 @layer base {
   body {
-    @apply bg-zinc-50 text-zinc-900 dark:bg-[#0a0a0a] dark:text-zinc-100 antialiased transition-colors duration-300;
+    @apply bg-zinc-50 text-zinc-900 dark:bg-[#0a0a0a] dark:text-zinc-100 antialiased;
     font-family: var(--font-sans);
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * {
+    transition: border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
 .glass {
-  @apply bg-white/40 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-sm dark:shadow-none;
+  @apply bg-white/40 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-sm dark:shadow-none transition-all duration-500;
 }
 
 .neon-glow {
