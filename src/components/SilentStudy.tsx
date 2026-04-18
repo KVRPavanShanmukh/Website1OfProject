@@ -5,9 +5,10 @@ import { cn } from '../lib/utils';
 
 interface SilentStudyProps {
   onClose: () => void;
+  isDarkMode?: boolean;
 }
 
-export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
+export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose, isDarkMode = true }) => {
   const [timeLeft, setTimeLeft] = useState(1500); // 25 minutes Pomodoro
   const [isActive, setIsActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -34,11 +35,17 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8"
+      className={cn(
+        "fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 transition-colors duration-1000",
+        isDarkMode ? "bg-black" : "bg-zinc-50"
+      )}
     >
       <button 
         onClick={onClose}
-        className="absolute top-8 right-8 p-4 bg-white/5 rounded-full hover:bg-white/10 transition-all text-zinc-500 hover:text-white"
+        className={cn(
+          "absolute top-8 right-8 p-4 rounded-full transition-all group",
+          isDarkMode ? "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-white" : "bg-black/5 text-zinc-500 hover:bg-black/10 hover:text-zinc-900"
+        )}
       >
         <X className="w-6 h-6" />
       </button>
@@ -49,11 +56,17 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
           transition={{ duration: 4, repeat: Infinity }}
           className="relative"
         >
-          <div className="text-[120px] font-black font-mono tracking-tighter text-white/20 select-none">
+          <div className={cn(
+            "text-[120px] font-black font-mono tracking-tighter select-none transition-colors",
+            isDarkMode ? "text-white/10" : "text-black/5"
+          )}>
             {formatTime(timeLeft)}
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-8xl font-black font-mono tracking-tighter text-white">
+            <div className={cn(
+              "text-8xl font-black font-mono tracking-tighter transition-colors",
+              isDarkMode ? "text-white" : "text-zinc-900"
+            )}>
               {formatTime(timeLeft)}
             </div>
           </div>
@@ -62,19 +75,30 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
         <div className="flex items-center justify-center gap-8">
           <button 
             onClick={() => setTimeLeft(1500)}
-            className="p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-zinc-500"
+            className={cn(
+              "p-4 rounded-3xl transition-all",
+              isDarkMode ? "bg-white/5 text-zinc-500 hover:bg-white/10" : "bg-black/5 text-zinc-500 hover:bg-black/10"
+            )}
           >
             <RotateCcw className="w-6 h-6" />
           </button>
           <button 
             onClick={() => setIsActive(!isActive)}
-            className="w-24 h-24 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+            className={cn(
+              "w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-2xl active:scale-95",
+              isDarkMode 
+                ? "bg-white text-black hover:scale-110 shadow-[0_0_50px_rgba(255,255,255,0.2)]" 
+                : "bg-zinc-900 text-white hover:scale-110 shadow-[0_0_30px_rgba(0,0,0,0.1)]"
+            )}
           >
             {isActive ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-2" />}
           </button>
           <button 
             onClick={() => setIsMuted(!isMuted)}
-            className="p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-zinc-500"
+            className={cn(
+              "p-4 rounded-3xl transition-all",
+              isDarkMode ? "bg-white/5 text-zinc-500 hover:bg-white/10" : "bg-black/5 text-zinc-500 hover:bg-black/10"
+            )}
           >
             {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
           </button>
@@ -87,7 +111,9 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
               onClick={() => setSoundType(sound)}
               className={cn(
                 "px-6 py-2 rounded-full text-xs font-bold transition-all border",
-                soundType === sound ? "bg-white text-black border-white" : "bg-transparent text-zinc-500 border-white/10 hover:border-white/30"
+                soundType === sound 
+                  ? (isDarkMode ? "bg-white text-black border-white" : "bg-zinc-900 text-white border-zinc-900") 
+                  : (isDarkMode ? "bg-transparent text-zinc-500 border-white/10 hover:border-white/30" : "bg-transparent text-zinc-500 border-black/10 hover:border-black/30")
               )}
             >
               {sound.toUpperCase()}
@@ -95,13 +121,13 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose }) => {
           ))}
         </div>
 
-        <p className="text-zinc-600 text-sm font-medium tracking-widest uppercase">
+        <p className={cn("text-xs font-bold tracking-widest uppercase transition-colors", isDarkMode ? "text-zinc-600" : "text-zinc-400")}>
           {isActive ? "Focusing..." : "Ready to focus?"}
         </p>
       </div>
 
-      <div className="absolute bottom-12 left-12 flex items-center gap-4 text-zinc-700">
-        <Moon className="w-5 h-5" />
+      <div className={cn("absolute bottom-12 left-12 flex items-center gap-4 transition-colors", isDarkMode ? "text-zinc-700" : "text-zinc-300")}>
+        {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         <span className="text-xs font-bold tracking-widest uppercase">Silent Study Mode</span>
       </div>
     </motion.div>

@@ -1764,7 +1764,7 @@ export default function App() {
                   <h1 className="text-6xl font-black mb-4 tracking-tight leading-tight text-zinc-900 dark:text-white">
                     Master Any <span className="text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">CS Concept</span>
                   </h1>
-                  <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+                  <p className={cn("text-lg max-w-2xl mx-auto transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
                     Fetch the best resources from across the globe. 
                     Get the most efficient path to expertise, instantly.
                   </p>
@@ -1825,7 +1825,7 @@ export default function App() {
                           Add problems to roadmap
                         </button>
                       </div>
-                      <div className="prose prose-invert max-w-none relative z-10">
+                      <div className={cn("prose max-w-none relative z-10 transition-colors", isDarkMode ? "prose-invert" : "")}>
                         <Markdown>{searchResults.text}</Markdown>
                       </div>
                     </motion.div>
@@ -1841,7 +1841,12 @@ export default function App() {
                             href={source.uri}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group p-4 glass rounded-2xl hover:bg-white/10 transition-all border border-white/5 hover:border-blue-500/30"
+                            className={cn(
+                              "group p-4 glass rounded-2xl transition-all border",
+                              isDarkMode 
+                                ? "hover:bg-white/10 border-white/5 hover:border-blue-500/30" 
+                                : "hover:bg-black/5 border-black/5 hover:border-blue-500/30 shadow-sm"
+                            )}
                           >
                             <div className="flex items-start justify-between mb-2">
                               <h3 className="font-bold text-blue-400 group-hover:underline truncate flex-1">
@@ -1859,7 +1864,7 @@ export default function App() {
 
                 {!searchResults && progress.lastSearched.length > 0 && (
                   <div className="mt-12">
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 className={cn("text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-500")}>
                       <Flame className="w-4 h-4 text-orange-500" />
                       Recent Searches
                     </h3>
@@ -1868,7 +1873,10 @@ export default function App() {
                         <button 
                           key={i}
                           onClick={() => { setSearchQuery(s); }}
-                          className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 hover:border-blue-500/30 transition-all"
+                          className={cn(
+                            "px-4 py-2 border rounded-full text-sm transition-all",
+                            isDarkMode ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-black/5 border-black/10 hover:bg-black/10"
+                          )}
                         >
                           {s}
                         </button>
@@ -1879,11 +1887,11 @@ export default function App() {
               </div>
 
               {/* Roadmap Section */}
-              <div className="pt-20 border-t border-white/5">
+              <div className={cn("pt-20 border-t transition-colors", isDarkMode ? "border-white/5" : "border-black/5")}>
                 <div className="flex items-center justify-between mb-12">
                   <div>
                     <h2 className="text-4xl font-black mb-2">My Learning Roadmap</h2>
-                    <p className="text-zinc-400">Your personalized path to mastery.</p>
+                    <p className={cn("transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>Your personalized path to mastery.</p>
                   </div>
                   <div className="text-right">
                     <div className="text-5xl font-black text-blue-400">{currentProgress}%</div>
@@ -1959,9 +1967,11 @@ export default function App() {
                                   top50: topic.problems.filter(p => p.category === 'top50'),
                                   related: topic.problems.filter(p => p.category === 'related' || !p.category),
                                 };
-
                                 const renderProblem = (prob: any) => (
-                                  <div key={prob.id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                  <div key={prob.id} className={cn(
+                                    "flex items-center justify-between p-3 rounded-xl border transition-colors",
+                                    isDarkMode ? "bg-black/20 border-white/5" : "bg-black/5 border-black/5 shadow-sm"
+                                  )}>
                                     <div className="flex items-center gap-3">
                                       <button 
                                         onClick={() => {
@@ -1970,16 +1980,16 @@ export default function App() {
                                         }}
                                         className={cn(
                                           "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                                          prob.completed ? "bg-emerald-500 border-emerald-500" : "border-white/20 hover:border-blue-500"
+                                          prob.completed ? "bg-emerald-500 border-emerald-500" : (isDarkMode ? "border-white/20 hover:border-blue-500" : "border-black/20 hover:border-blue-500")
                                         )}
                                       >
                                         {prob.completed && <CheckCircle2 className="w-3 h-3 text-black" />}
                                       </button>
-                                      <span className={cn("text-sm", prob.completed ? "text-zinc-500 line-through" : "text-zinc-300")}>
+                                      <span className={cn("text-sm transition-colors", prob.completed ? "text-zinc-500 line-through" : (isDarkMode ? "text-zinc-300" : "text-zinc-700"))}>
                                         {prob.title}
                                       </span>
                                     </div>
-                                    <a href={prob.url} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-white/10 rounded-lg transition-all">
+                                    <a href={prob.url} target="_blank" rel="noopener noreferrer" className={cn("p-1.5 rounded-lg transition-all", isDarkMode ? "hover:bg-white/10" : "hover:bg-black/10")}>
                                       <ExternalLink className="w-3 h-3 text-zinc-500" />
                                     </a>
                                   </div>
@@ -1995,11 +2005,11 @@ export default function App() {
                                         className={cn(
                                           "w-full flex items-center justify-between p-3 rounded-xl border transition-all",
                                           isOpen 
-                                            ? (color === 'blue' ? "bg-blue-500/10 border-blue-500/20" : 
-                                               color === 'emerald' ? "bg-emerald-500/10 border-emerald-500/20" :
-                                               color === 'purple' ? "bg-purple-500/10 border-purple-500/20" :
-                                               "bg-zinc-500/10 border-zinc-500/20")
-                                            : "bg-black/20 border-white/5 hover:bg-white/5"
+                                            ? (color === 'blue' ? (isDarkMode ? "bg-blue-500/10 border-blue-500/20" : "bg-blue-500/5 border-blue-500/10") : 
+                                               color === 'emerald' ? (isDarkMode ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-500/5 border-emerald-500/10") :
+                                               color === 'purple' ? (isDarkMode ? "bg-purple-500/10 border-purple-500/20" : "bg-purple-500/5 border-purple-500/10") :
+                                               (isDarkMode ? "bg-zinc-500/10 border-zinc-500/20" : "bg-zinc-500/5 border-zinc-500/10"))
+                                            : (isDarkMode ? "bg-black/20 border-white/5 hover:bg-white/5" : "bg-black/5 border-black/5 hover:bg-black/10 shadow-sm")
                                         )}
                                       >
                                         <div className="flex items-center gap-3">
@@ -2161,7 +2171,7 @@ export default function App() {
                 {/* Left Column: Analytics & Visuals */}
                 <div className="lg:col-span-8 space-y-8">
                   {/* Heatmap Section */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                  <div className="glass p-8 rounded-[40px] border border-black/5 dark:border-white/5 shadow-sm">
                     <div className="flex items-center justify-between mb-8">
                       <h3 className="text-xl font-bold flex items-center gap-3">
                         <Activity className="w-6 h-6 text-emerald-500" />
@@ -2183,7 +2193,7 @@ export default function App() {
                         data[date] = (data[date] || 0) + 1;
                       });
                       return data;
-                    })()} />
+                    })()} isDarkMode={isDarkMode} />
                   </div>
 
                   {/* Charts Grid */}
@@ -2353,13 +2363,13 @@ export default function App() {
                 {/* Right Column: Social & Leaderboard */}
                 <div className="lg:col-span-4 space-y-8">
                   {/* Social Card */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                  <div className="glass p-8 rounded-[40px] border border-black/5 dark:border-white/5">
                     <div className="flex items-center justify-between mb-8">
                       <h3 className="text-xl font-bold flex items-center gap-3">
                         <Users className="w-6 h-6 text-blue-500" />
                         Social
                       </h3>
-                      <button className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
+                      <button className="p-2 bg-black/5 dark:bg-white/5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-all">
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
@@ -2367,32 +2377,33 @@ export default function App() {
                     <div className="space-y-6">
                       {/* Friends List (Truncated) */}
                       <div>
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Friends Online</div>
+                        <div className={cn("text-[10px] font-bold uppercase tracking-widest mb-4 transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-500")}>Friends Online</div>
                         <div className="space-y-3">
                           {friends.slice(0, 3).map(friend => (
-                            <div key={friend.email} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                            <div key={friend.email} className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-sm">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold">
+                                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-colors", isDarkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-700")}>
                                     {friend.name.substring(0, 2).toUpperCase()}
                                   </div>
                                   <div className={cn(
-                                    "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0a0a0a]",
+                                    "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 transition-colors",
+                                    isDarkMode ? "border-[#0a0a0a]" : "border-white",
                                     friend.status === 'online' ? "bg-emerald-500" : "bg-zinc-600"
                                   )} />
                                 </div>
                                 <div>
                                   <div className="text-xs font-bold">{friend.name}</div>
-                                  <div className="text-[10px] text-zinc-500">{friend.status}</div>
+                                  <div className={cn("text-[10px] transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>{friend.status}</div>
                                 </div>
                               </div>
-                              <button className="p-2 text-zinc-500 hover:text-blue-400 transition-colors">
+                              <button className={cn("p-2 transition-colors", isDarkMode ? "text-zinc-500 hover:text-blue-400" : "text-zinc-500 hover:text-blue-600")}>
                                 <MessageSquare className="w-4 h-4" />
                               </button>
                             </div>
                           ))}
                           {friends.length > 3 && (
-                            <button className="w-full py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:text-white transition-colors">
+                            <button className={cn("w-full py-2 text-[10px] font-bold uppercase tracking-widest transition-colors", isDarkMode ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900")}>
                               View All {friends.length} Friends
                             </button>
                           )}
@@ -2413,7 +2424,7 @@ export default function App() {
                   </div>
 
                   {/* Leaderboard Preview */}
-                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                  <div className="glass p-8 rounded-[40px] border border-black/5 dark:border-white/5">
                     <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
                       <Trophy className="w-6 h-6 text-yellow-500" />
                       Top Scholars
@@ -2423,23 +2434,25 @@ export default function App() {
                         <div 
                           key={user.email} 
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-2xl transition-all",
-                            user.email === userEmail ? "bg-blue-500/20 border border-blue-500/30" : "bg-black/5 dark:bg-white/5 border border-transparent"
+                            "flex items-center justify-between p-3 rounded-2xl transition-all border shadow-sm",
+                            user.email === userEmail 
+                              ? (isDarkMode ? "bg-blue-500/20 border-blue-500/30" : "bg-blue-500/10 border-blue-500/20") 
+                              : (isDarkMode ? "bg-white/5 border-transparent" : "bg-black/5 border-transparent")
                           )}
                         >
                           <div className="flex items-center gap-3">
                             <div className={cn(
-                              "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black",
+                              "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors",
                               i === 0 ? "bg-yellow-500 text-black" : 
                               i === 1 ? "bg-zinc-300 text-black" : 
                               i === 2 ? "bg-orange-500 text-black" : 
-                              "bg-zinc-800 text-zinc-400"
+                              (isDarkMode ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-600")
                             )}>
                               {i + 1}
                             </div>
                             <div>
                               <div className="text-xs font-bold">{user.name}</div>
-                              <div className="text-[10px] text-zinc-500">{user.points} pts</div>
+                              <div className={cn("text-[10px] transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>{user.points} pts</div>
                             </div>
                           </div>
                           {i < 3 && <Award className={cn("w-4 h-4", i === 0 ? "text-yellow-500" : i === 1 ? "text-zinc-400" : "text-orange-500")} />}
@@ -2511,7 +2524,7 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="max-w-6xl mx-auto p-8"
             >
-              <SpeedCoding onComplete={handleSpeedCodingComplete} />
+              <SpeedCoding onComplete={handleSpeedCodingComplete} isDarkMode={isDarkMode} />
             </motion.div>
           )}
 
@@ -2617,13 +2630,16 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
+                      <div className={cn(
+                        "aspect-square w-full max-w-[400px] rounded-2xl p-4 grid grid-cols-4 gap-4 relative transition-colors",
+                        isDarkMode ? "bg-zinc-900 shadow-2xl" : "bg-zinc-100 shadow-inner"
+                      )}>
                         {grid.flat().map((val, i) => (
                           <div 
                             key={i} 
                             className={cn(
                               "rounded-lg flex items-center justify-center text-2xl font-black transition-all duration-100",
-                              val === 0 ? "bg-white/5 text-transparent" : 
+                              val === 0 ? (isDarkMode ? "bg-white/5 text-transparent" : "bg-white/40 text-transparent") : 
                               val === 2 ? "bg-zinc-200 text-zinc-900" :
                               val === 4 ? "bg-zinc-100 text-zinc-900" :
                               val === 8 ? "bg-orange-200 text-zinc-900" :
@@ -2642,16 +2658,19 @@ export default function App() {
                         ))}
                         
                         {lockoutUntil > Date.now() && (
-                          <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                          <div className={cn(
+                            "absolute inset-0 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center text-center p-8 transition-colors z-[40]",
+                            isDarkMode ? "bg-black/80" : "bg-white/80"
+                          )}>
                             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
                               <Clock className="w-10 h-10 text-red-500" />
                             </div>
                             <h4 className="text-2xl font-black mb-4">Daily Limit Reached</h4>
-                            <p className="text-zinc-400 mb-8 max-w-xs">
+                            <p className={cn("mb-8 max-w-xs transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
                               You've completed your 3 daily sessions. Take a break and focus on your learning goals!
                             </p>
                             <div className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-2">Next Session Available In</div>
-                            <div className="text-3xl font-black text-white">
+                            <div className={cn("text-3xl font-black transition-colors", isDarkMode ? "text-white" : "text-zinc-900")}>
                               {(() => {
                                 const diff = lockoutUntil - Date.now();
                                 const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -2708,7 +2727,10 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-4 grid grid-cols-4 gap-4 relative">
+                      <div className={cn(
+                        "aspect-square w-full max-w-[400px] rounded-2xl p-4 grid grid-cols-4 gap-4 relative transition-colors",
+                        isDarkMode ? "bg-zinc-900 shadow-2xl" : "bg-zinc-100 shadow-inner"
+                      )}>
                         {memoryCards.length > 0 ? (
                           memoryCards.map((card) => (
                             <button 
@@ -2716,7 +2738,9 @@ export default function App() {
                               onClick={() => handleCardClick(card.id)}
                               className={cn(
                                 "rounded-lg flex items-center justify-center text-2xl transition-all duration-300 transform preserve-3d",
-                                card.isFlipped || card.isMatched ? "bg-blue-500 text-black rotate-y-180" : "bg-white/5 text-transparent"
+                                card.isFlipped || card.isMatched 
+                                  ? "bg-blue-500 text-black rotate-y-180" 
+                                  : (isDarkMode ? "bg-white/5 text-transparent" : "bg-white text-transparent shadow-sm")
                               )}
                             >
                               {(card.isFlipped || card.isMatched) && (
@@ -2797,7 +2821,10 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="aspect-square w-full max-w-[400px] bg-zinc-900 rounded-2xl p-1 grid grid-cols-20 grid-rows-20 gap-0 relative overflow-hidden">
+                      <div className={cn(
+                        "aspect-square w-full max-w-[400px] rounded-2xl p-1 grid grid-cols-20 grid-rows-20 gap-0 relative overflow-hidden transition-colors",
+                        isDarkMode ? "bg-zinc-900 shadow-2xl" : "bg-zinc-100 shadow-inner"
+                      )}>
                         {Array.from({ length: 400 }).map((_, i) => {
                           const x = i % 20;
                           const y = Math.floor(i / 20);
@@ -2809,11 +2836,11 @@ export default function App() {
                             <div 
                               key={i}
                               className={cn(
-                                "w-full h-full rounded-[2px]",
+                                "w-full h-full rounded-[2px] transition-all",
                                 isHead ? "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)] z-10" :
-                                isSnake ? "bg-blue-600/80" :
+                                isSnake ? (isDarkMode ? "bg-blue-600/80" : "bg-blue-500") :
                                 isFood ? "bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.6)]" :
-                                "bg-white/[0.02]"
+                                (isDarkMode ? "bg-white/[0.02]" : "bg-black/[0.02]")
                               )}
                             />
                           );
@@ -3036,7 +3063,10 @@ export default function App() {
               <div className="glass rounded-[40px] overflow-hidden border border-black/5 dark:border-white/10 mb-12">
                 <div className="h-64 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 relative">
                   <div className="absolute -bottom-16 left-12">
-                    <div className="w-40 h-40 rounded-3xl bg-zinc-900 border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl overflow-hidden">
+                    <div className={cn(
+                      "w-40 h-40 rounded-3xl flex items-center justify-center shadow-2xl overflow-hidden border-4 transition-colors",
+                      isDarkMode ? "bg-zinc-900 border-[#0a0a0a]" : "bg-white border-zinc-100"
+                    )}>
                       <div className="w-full h-full bg-blue-500 flex items-center justify-center">
                         <User className="w-20 h-20 text-black" />
                       </div>
@@ -3062,22 +3092,22 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
-                      <div className="text-blue-400 mb-2"><Award className="w-6 h-6" /></div>
-                      <div className="text-sm font-bold mb-1">Specialization</div>
-                      <div className="text-xs text-zinc-500">Distributed Ledger Analytics</div>
+                      <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="text-blue-400 mb-2"><Award className="w-6 h-6" /></div>
+                        <div className="text-sm font-bold mb-1">Specialization</div>
+                        <div className={cn("text-xs transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>Distributed Ledger Analytics</div>
+                      </div>
+                      <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="text-blue-400 mb-2"><Code2 className="w-6 h-6" /></div>
+                        <div className="text-sm font-bold mb-1">Experience</div>
+                        <div className={cn("text-xs transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>Full Stack & Security</div>
+                      </div>
+                      <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="text-purple-400 mb-2"><Globe className="w-6 h-6" /></div>
+                        <div className="text-sm font-bold mb-1">Interests</div>
+                        <div className={cn("text-xs transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>AI, Blockchain, CyberSec</div>
+                      </div>
                     </div>
-                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
-                      <div className="text-blue-400 mb-2"><Code2 className="w-6 h-6" /></div>
-                      <div className="text-sm font-bold mb-1">Experience</div>
-                      <div className="text-xs text-zinc-500">Full Stack & Security</div>
-                    </div>
-                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5">
-                      <div className="text-purple-400 mb-2"><Globe className="w-6 h-6" /></div>
-                      <div className="text-sm font-bold mb-1">Interests</div>
-                      <div className="text-xs text-zinc-500">AI, Blockchain, CyberSec</div>
-                    </div>
-                  </div>
 
                   <div className="space-y-12">
                     <section>
@@ -3160,23 +3190,23 @@ export default function App() {
             >
               {!isMeetActive ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden border border-black/5 dark:border-white/10">
+                  <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl">
                     <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Video className="w-10 h-10 text-blue-500" />
                     </div>
                     <h2 className="text-3xl font-black mb-4">Teaching Room</h2>
-                    <p className="text-zinc-400 mb-8">
+                    <p className={cn("mb-8 transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
                       Practice teaching to AI students. They'll listen, ask questions, and respond based on your instructions.
                       <br /><span className="text-[10px] text-blue-500/60 mt-2 block">Tip: Use the monitor icon to share your screen and present your concepts.</span>
                     </p>
                     
                     <div className="text-left mb-8">
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Student Persona</label>
+                      <label className={cn("text-xs font-bold uppercase tracking-widest mb-2 block transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-500")}>Student Persona</label>
                       <select 
                         value={studentInstruction}
                         onChange={(e) => setStudentInstruction(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-xl p-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
+                        className="w-full bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl p-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none shadow-sm"
                       >
                         <option value="A curious beginner who asks deep questions">Curious Beginner</option>
                         <option value="A skeptical student who needs proof for everything">Skeptical Expert</option>
@@ -3197,10 +3227,16 @@ export default function App() {
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 overflow-hidden">
                   {/* Main Video Area */}
                   <div className="lg:col-span-3 flex flex-col gap-4">
-                    <div className="flex-1 relative bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl">
+                    <div className={cn(
+                      "flex-1 relative rounded-3xl overflow-hidden border shadow-2xl transition-colors",
+                      isDarkMode ? "bg-zinc-900 border-white/5" : "bg-white border-black/5"
+                    )}>
                       {/* Seminar Hall Background */}
                       <div className="absolute inset-0 pointer-events-none opacity-40">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+                        <div className={cn(
+                          "absolute inset-0 z-10",
+                          isDarkMode ? "bg-gradient-to-t from-black via-transparent to-transparent" : "bg-gradient-to-t from-white via-transparent to-transparent"
+                        )} />
                         <div className="grid grid-cols-8 gap-4 p-8 h-full items-end justify-items-center">
                           {Array.from({ length: 24 }).map((_, i) => (
                             <motion.div 
@@ -3223,9 +3259,9 @@ export default function App() {
                                 repeat: Infinity,
                                 delay: i * 0.1
                               }}
-                              className="w-8 h-12 bg-zinc-800 rounded-t-full relative"
+                              className={cn("w-8 h-12 rounded-t-full relative transition-colors", isDarkMode ? "bg-zinc-800" : "bg-zinc-200")}
                             >
-                              <div className="w-6 h-6 bg-zinc-700 rounded-full absolute -top-4 left-1" />
+                              <div className={cn("w-6 h-6 rounded-full absolute -top-4 left-1 transition-colors", isDarkMode ? "bg-zinc-700" : "bg-zinc-300")} />
                               {audienceState === 'idle' && (
                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
                                   <div className="w-2 h-0.5 bg-zinc-600 rounded-full" />
@@ -3265,19 +3301,22 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-zinc-900 z-20">
+                        <div className={cn("w-full h-full flex items-center justify-center transition-colors shadow-inner z-20", isDarkMode ? "bg-zinc-900" : "bg-zinc-50")}>
                           <div className="w-32 h-32 bg-blue-500/10 rounded-full flex items-center justify-center">
                             <VideoOff className="w-12 h-12 text-blue-500/50" />
                           </div>
                         </div>
                       )}
                       
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 glass rounded-full z-30">
+                      <div className={cn(
+                        "absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 glass rounded-full z-30 border transition-all shadow-xl",
+                        isDarkMode ? "border-white/10" : "border-black/5"
+                      )}>
                         <button 
                           onClick={() => setIsPresenting(!isPresenting)}
                           className={cn(
                             "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                            isPresenting ? "bg-blue-500 text-black" : "bg-white/10 text-white hover:bg-white/20"
+                            isPresenting ? "bg-blue-500 text-black shadow-lg shadow-blue-500/20" : (isDarkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-black/5 text-black hover:bg-black/10")
                           )}
                         >
                           {isPresenting ? 'Stop Presenting' : 'Start Presentation'}
@@ -3287,7 +3326,9 @@ export default function App() {
                           onClick={() => setIsMicOn(!isMicOn)}
                           className={cn(
                             "p-3 rounded-full transition-all",
-                            isMicOn ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"
+                            isMicOn 
+                              ? (isDarkMode ? "bg-white/10 hover:bg-white/20" : "bg-black/5 hover:bg-black/10") 
+                              : "bg-red-500 text-white shadow-lg shadow-red-500/20"
                           )}
                           title={isMicOn ? "Mute" : "Unmute"}
                         >
@@ -3596,14 +3637,17 @@ export default function App() {
             initial={{ x: 400, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
-            className="fixed top-20 right-6 bottom-24 w-80 sm:w-96 glass rounded-3xl border border-white/10 shadow-2xl z-[90] flex flex-col overflow-hidden"
+            className="fixed top-20 right-6 bottom-24 w-80 sm:w-96 glass rounded-3xl border border-black/5 dark:border-white/10 shadow-2xl z-[90] flex flex-col overflow-hidden"
           >
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+            <div className={cn("p-4 border-b flex items-center justify-between transition-colors", isDarkMode ? "border-white/10 bg-white/5" : "border-black/5 bg-black/5")}>
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-blue-400" />
                 <span className="font-bold text-sm">AI Tutor</span>
               </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white">
+              <button 
+                onClick={() => setIsChatOpen(false)} 
+                className={cn("transition-colors", isDarkMode ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900")}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3615,7 +3659,7 @@ export default function App() {
                     <Terminal className="w-6 h-6 text-blue-500" />
                   </div>
                   <h4 className="font-bold mb-2">How can I help you?</h4>
-                  <p className="text-xs text-zinc-500">Ask me anything about coding, your roadmap, or technical concepts.</p>
+                  <p className={cn("text-xs transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-600")}>Ask me anything about coding, your roadmap, or technical concepts.</p>
                 </div>
               )}
               {chatMessages.map((msg, i) => (
@@ -3624,10 +3668,13 @@ export default function App() {
                   msg.role === 'user' ? "items-end" : "items-start"
                 )}>
                   <div className={cn(
-                    "max-w-[85%] p-3 rounded-2xl text-sm",
+                    "max-w-[85%] p-3 rounded-2xl text-sm transition-all",
                     msg.role === 'user' 
-                      ? "bg-blue-500 text-black rounded-tr-none" 
-                      : "bg-white/5 border border-white/10 rounded-tl-none"
+                      ? "bg-blue-500 text-black rounded-tr-none shadow-lg shadow-blue-500/20" 
+                      : cn(
+                          "rounded-tl-none border", 
+                          isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-white border-black/5 text-zinc-900 shadow-sm"
+                        )
                   )}>
                     <Markdown>{msg.parts[0].text}</Markdown>
                   </div>
@@ -3635,7 +3682,10 @@ export default function App() {
               ))}
               {isChatTyping && (
                 <div className="flex flex-col items-start">
-                  <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none">
+                  <div className={cn(
+                    "p-3 rounded-2xl rounded-tl-none border",
+                    isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-black/5 shadow-sm"
+                  )}>
                     <div className="flex gap-1">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -3646,14 +3696,17 @@ export default function App() {
               )}
             </div>
 
-            <form onSubmit={handleChatSubmit} className="p-4 bg-white/5 border-t border-white/10">
+            <form onSubmit={handleChatSubmit} className={cn("p-4 border-t transition-colors", isDarkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10")}>
               <div className="relative">
                 <input 
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask something..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className={cn(
+                    "w-full rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all border",
+                    isDarkMode ? "bg-zinc-900 border-white/10 text-white" : "bg-white border-black/10 text-zinc-900"
+                  )}
                 />
                 <button 
                   type="submit"
@@ -3666,12 +3719,12 @@ export default function App() {
             </form>
           </motion.div>
         )}
+      </AnimatePresence>
         <AnimatePresence>
           {showSilentStudy && (
-            <SilentStudy onClose={() => setShowSilentStudy(false)} />
+            <SilentStudy onClose={() => setShowSilentStudy(false)} isDarkMode={isDarkMode} />
           )}
         </AnimatePresence>
-      </AnimatePresence>
     </div>
   );
 }

@@ -4,9 +4,10 @@ import { cn } from '../lib/utils';
 
 interface CodingHeatmapProps {
   data: { [date: string]: number };
+  isDarkMode?: boolean;
 }
 
-export const CodingHeatmap: React.FC<CodingHeatmapProps> = ({ data }) => {
+export const CodingHeatmap: React.FC<CodingHeatmapProps> = ({ data, isDarkMode }) => {
   const today = new Date();
   const startDate = subDays(today, 364); // Last 1 year
   const days = eachDayOfInterval({ start: startDate, end: today });
