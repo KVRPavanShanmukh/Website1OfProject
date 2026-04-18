@@ -63,7 +63,10 @@ import {
   Play,
   Moon,
   Sun,
-  LayoutDashboard
+  LayoutDashboard,
+  Chrome,
+  Facebook,
+  Apple
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -1119,21 +1122,26 @@ export default function App() {
                 /* Interactive Room for Unauthenticated Users */
                 <div className={cn(
                   "relative min-h-[calc(100vh-80px)] overflow-hidden transition-colors duration-1000",
-                  isLightOn ? "bg-zinc-100" : "bg-[#050505]"
+                  isLightOn 
+                    ? (isDarkMode ? "bg-zinc-800" : "bg-zinc-100") 
+                    : (isDarkMode ? "bg-[#050505]" : "bg-zinc-300")
                 )}>
                   {/* Room Environment Effects */}
                   <div className={cn(
                     "absolute inset-0 transition-opacity duration-1000 pointer-events-none",
                     isLightOn ? "opacity-0" : "opacity-100"
                   )}>
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 blur-[120px]" />
+                    <div className={cn(
+                      "absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] blur-[120px]",
+                      isDarkMode ? "bg-blue-500/10" : "bg-zinc-500/10"
+                    )} />
                   </div>
 
                   {/* Ceiling Light */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-zinc-800 rounded-b-xl z-20">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-zinc-800 dark:bg-zinc-700 rounded-b-xl z-20">
                     <div className={cn(
                       "absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-2 rounded-full transition-all duration-300",
-                      isLightOn ? "bg-yellow-200 shadow-[0_0_50px_20px_rgba(254,240,138,0.5)]" : "bg-zinc-900"
+                      isLightOn ? "bg-yellow-200 shadow-[0_0_50px_20px_rgba(254,240,138,0.5)]" : "bg-zinc-900 dark:bg-zinc-600"
                     )} />
                   </div>
 
@@ -1177,7 +1185,8 @@ export default function App() {
                   {/* AC (Wall Mounted) */}
                   <div className="absolute top-10 right-20 z-10">
                     <div className={cn(
-                      "relative w-64 h-20 bg-zinc-200 rounded-lg shadow-xl border-b-4 border-zinc-300 transition-all duration-500",
+                      "relative w-64 h-20 rounded-lg shadow-xl border-b-4 transition-all duration-500 z-10",
+                      isDarkMode ? "bg-zinc-200 border-zinc-300" : "bg-zinc-100 border-zinc-200",
                       !isLightOn && "brightness-50"
                     )}>
                       {/* AC Display */}
@@ -1209,10 +1218,13 @@ export default function App() {
                   {/* Computer Setup */}
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[80%] flex flex-col items-center z-10">
                     {/* Monitor */}
-                    <div className="relative w-full max-w-3xl aspect-video bg-zinc-800 rounded-[40px] p-6 border-[12px] border-zinc-700 shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
+                    <div className={cn(
+                      "relative w-full max-w-3xl aspect-video rounded-[40px] p-6 border-[12px] shadow-[0_50px_100px_rgba(0,0,0,0.5)] transition-colors duration-500",
+                      isDarkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-200 border-zinc-300"
+                    )}>
                       <div className={cn(
                         "w-full h-full rounded-2xl overflow-hidden transition-all duration-1000 relative",
-                        isComputerOn ? "bg-black" : "bg-zinc-900"
+                        isComputerOn ? (isDarkMode ? "bg-black" : "bg-white") : "bg-zinc-900"
                       )}>
                         {isComputerOn ? (
                           <AnimatePresence mode="wait">
@@ -1220,69 +1232,75 @@ export default function App() {
                               key="login-screen"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              className="w-full h-full bg-[#0a0a0a] flex items-center justify-center p-8 relative"
+                              className={cn(
+                                "w-full h-full flex items-center justify-center p-8 relative",
+                                isDarkMode ? "bg-[#0a0a0a]" : "bg-white text-zinc-900"
+                              )}
                             >
                               {/* Scanline effect */}
-                              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+                              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] opacity-20" />
                               
                               <div className="w-full max-w-sm relative z-20">
-                                <div className="flex flex-col items-center text-center mb-8">
-                                  <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.4)] mb-4">
-                                    <Terminal className="text-black w-8 h-8" />
+                                <div className="flex flex-col items-center text-center mb-10">
+                                  <div className={cn(
+                                    "w-20 h-20 rounded-full border-2 flex items-center justify-center mb-6 shadow-2xl transition-colors",
+                                    isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-zinc-50 border-zinc-200"
+                                  )}>
+                                    <User className={cn("w-10 h-10 transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-400")} />
                                   </div>
-                                  <h1 className="text-2xl font-black mb-1 tracking-tight">System Access</h1>
-                                  <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Authentication Required</p>
+                                  <h1 className="text-2xl font-bold mb-1 tracking-tight">Authentication Required</h1>
+                                  <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Secure Sign-in</p>
                                 </div>
 
-                                <form onSubmit={handleLogin} className="space-y-4">
+                                <form onSubmit={handleLogin} className="space-y-5">
                                   <div className="space-y-1.5">
-                                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
-                                    <motion.div 
-                                      whileHover={{ scale: 1.02 }}
-                                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                      className="relative"
-                                    >
-                                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                                      <input 
-                                        type="text"
-                                        required
-                                        value={usernameInput}
-                                        onChange={(e) => setUsernameInput(e.target.value)}
-                                        placeholder="Enter username"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all"
-                                      />
-                                    </motion.div>
+                                    <input 
+                                      type="text"
+                                      required
+                                      value={usernameInput}
+                                      onChange={(e) => setUsernameInput(e.target.value)}
+                                      placeholder="Username"
+                                      className={cn(
+                                        "w-full border rounded-lg py-3 px-4 text-sm focus:outline-none transition-all placeholder:text-zinc-600",
+                                        isDarkMode ? "bg-zinc-900/50 border-zinc-800 text-white focus:border-zinc-600" : "bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-zinc-400"
+                                      )}
+                                    />
                                   </div>
 
-                                  <div className="space-y-1.5">
-                                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">CAPTCHA</label>
+                                  <div className="space-y-2">
                                     <div className="flex gap-2">
-                                      <div className="flex-1 bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center font-mono text-lg tracking-[0.3em] text-blue-400 select-none italic line-through decoration-white/20 h-12">
+                                      <div className={cn(
+                                        "flex-1 border rounded-lg flex items-center justify-center font-mono text-lg tracking-[0.3em] select-none italic h-12 transition-colors",
+                                        isDarkMode ? "bg-zinc-900 border-zinc-800 text-zinc-500" : "bg-zinc-50 border-zinc-200 text-zinc-400"
+                                      )}>
                                         {currentCaptcha}
                                       </div>
                                       <button 
                                         type="button"
                                         onClick={generateCaptcha}
-                                        className="p-3 bg-white/5 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-colors h-12 w-12 flex items-center justify-center"
+                                        className={cn(
+                                          "p-3 border rounded-lg transition-colors h-12 w-12 flex items-center justify-center",
+                                          isDarkMode ? "bg-zinc-800 border-zinc-700 text-zinc-500 hover:text-white" : "bg-zinc-100 border-zinc-200 text-zinc-400 hover:text-zinc-900"
+                                        )}
                                       >
                                         <RefreshCw className="w-4 h-4" />
                                       </button>
                                     </div>
-                                    <motion.input 
-                                      whileHover={{ scale: 1.02 }}
-                                      whileFocus={{ scale: 1.02 }}
-                                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                    <input 
                                       type="text"
                                       required
                                       value={captchaInput}
                                       onChange={(e) => setCaptchaInput(e.target.value)}
-                                      placeholder="Enter code"
-                                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all uppercase"
+                                      placeholder="Enter Verification Code"
+                                      className={cn(
+                                        "w-full border rounded-lg py-3 px-4 text-sm focus:outline-none transition-all uppercase placeholder:text-zinc-600",
+                                        isDarkMode ? "bg-zinc-900/50 border-zinc-800 text-white focus:border-zinc-600" : "bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-zinc-400"
+                                      )}
                                     />
                                   </div>
 
                                   {authError && (
-                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold flex items-center gap-2">
+                                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold flex items-center gap-2">
                                       <Info className="w-3 h-3" />
                                       {authError}
                                     </div>
@@ -1290,11 +1308,29 @@ export default function App() {
 
                                   <button 
                                     type="submit"
-                                    className="w-full py-3 bg-blue-500 text-black rounded-xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 text-sm"
+                                    className={cn(
+                                      "w-full py-3 rounded-lg font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm shadow-xl",
+                                      isDarkMode ? "bg-zinc-200 text-black hover:bg-white" : "bg-zinc-900 text-white hover:bg-black"
+                                    )}
                                   >
-                                    Initialize Session
+                                    Sign In
                                     <ChevronRight className="w-4 h-4" />
                                   </button>
+
+                                  <div className={cn("pt-8 mt-4 border-t", isDarkMode ? "border-zinc-800" : "border-zinc-200")}>
+                                    <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Sign-in Options</p>
+                                    <div className="flex justify-center gap-4">
+                                      <button type="button" className={cn("p-3 rounded-full border transition-all group", isDarkMode ? "bg-zinc-900 border-zinc-800 hover:bg-zinc-800" : "bg-zinc-50 border-zinc-200 hover:bg-white")}>
+                                        <Chrome className={cn("w-5 h-5 transition-colors", isDarkMode ? "text-zinc-500 group-hover:text-blue-400" : "text-zinc-400 group-hover:text-blue-600")} />
+                                      </button>
+                                      <button type="button" className={cn("p-3 rounded-full border transition-all group", isDarkMode ? "bg-zinc-900 border-zinc-800 hover:bg-zinc-800" : "bg-zinc-50 border-zinc-200 hover:bg-white")}>
+                                        <Facebook className={cn("w-5 h-5 transition-colors", isDarkMode ? "text-zinc-500 group-hover:text-blue-600" : "text-zinc-400 group-hover:text-blue-700")} />
+                                      </button>
+                                      <button type="button" className={cn("p-3 rounded-full border transition-all group", isDarkMode ? "bg-zinc-900 border-zinc-800 hover:bg-zinc-800" : "bg-zinc-50 border-zinc-200 hover:bg-white")}>
+                                        <Apple className={cn("w-5 h-5 transition-colors", isDarkMode ? "text-zinc-500 group-hover:text-white" : "text-zinc-400 group-hover:text-zinc-900")} />
+                                      </button>
+                                    </div>
+                                  </div>
                                 </form>
                               </div>
                             </motion.div>
@@ -1312,21 +1348,29 @@ export default function App() {
                     </div>
 
                     {/* Desk */}
-                    <div className="w-full h-12 bg-zinc-800 mt-20 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-b-8 border-zinc-900" />
+                    <div className={cn(
+                      "w-full h-12 mt-20 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-b-8 transition-colors",
+                      isDarkMode ? "bg-zinc-800 border-zinc-900" : "bg-zinc-300 border-zinc-400"
+                    )} />
 
                     {/* CPU */}
-                    <div className="absolute bottom-0 right-20 w-40 h-64 bg-zinc-800 rounded-t-[32px] border-x-[12px] border-t-[12px] border-zinc-700 p-6 flex flex-col items-center gap-6 shadow-2xl">
-                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
-                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
-                      <div className="w-full h-1.5 bg-zinc-700 rounded-full" />
+                    <div className={cn(
+                      "absolute bottom-0 -right-20 w-40 h-64 rounded-t-[32px] border-x-[12px] border-t-[12px] p-6 flex flex-col items-center gap-6 shadow-2xl transition-colors",
+                      isDarkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-200"
+                    )}>
+                      <div className={cn("w-full h-1.5 rounded-full transition-colors", isDarkMode ? "bg-zinc-700" : "bg-zinc-200")} />
+                      <div className={cn("w-full h-1.5 rounded-full transition-colors", isDarkMode ? "bg-zinc-700" : "bg-zinc-200")} />
+                      <div className={cn("w-full h-1.5 rounded-full transition-colors", isDarkMode ? "bg-zinc-700" : "bg-zinc-200")} />
                       <button 
                         onClick={() => setIsComputerOn(!isComputerOn)}
                         className={cn(
                           "w-16 h-16 rounded-full border-8 flex items-center justify-center transition-all mt-auto mb-4 group",
-                          isComputerOn ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)]" : "bg-zinc-900 border-zinc-700 hover:border-zinc-600"
+                          isComputerOn 
+                            ? (isDarkMode ? "bg-blue-500 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)]" : "bg-blue-400 border-blue-300 shadow-[0_0_30px_rgba(59,130,246,0.4)]") 
+                            : (isDarkMode ? "bg-zinc-900 border-zinc-700 hover:border-zinc-600" : "bg-zinc-200 border-zinc-300 hover:border-zinc-400")
                         )}
                       >
-                        <Power className={cn("w-8 h-8 transition-colors", isComputerOn ? "text-black" : "text-zinc-600 group-hover:text-zinc-500")} />
+                        <Power className={cn("w-8 h-8 transition-colors", isComputerOn ? (isDarkMode ? "text-black" : "text-white") : "text-zinc-600 group-hover:text-zinc-500")} />
                       </button>
                     </div>
                   </div>
@@ -1639,8 +1683,8 @@ export default function App() {
               </button>
 
               <div className="text-center mb-20">
-                <h1 className="text-6xl font-black mb-6 tracking-tight">Explore Our <span className="text-blue-500">Features</span></h1>
-                <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
+                <h1 className="text-6xl font-black mb-6 tracking-tight">Explore Our <span className="text-blue-500 transition-colors">Features</span></h1>
+                <p className={cn("text-xl max-w-3xl mx-auto transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
                   AI Vidyapeettham is a comprehensive platform designed to revolutionize how you learn and practice computer science.
                 </p>
               </div>
@@ -1651,31 +1695,31 @@ export default function App() {
                     title: "Roadmap Learning System",
                     desc: "Our AI generates personalized, step-by-step learning paths for any CS topic. From Data Structures to Machine Learning, get a clear visual roadmap with curated resources.",
                     icon: BookOpen,
-                    color: "bg-blue-500/20 text-blue-400"
+                    color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 dark:bg-blue-500/20"
                   },
                   {
                     title: "Problem Searching & Practice",
                     desc: "Search for specific coding problems or concepts. Our system fetches relevant challenges from top platforms like LeetCode and GeeksforGeeks for you to practice.",
                     icon: Search,
-                    color: "bg-emerald-500/20 text-emerald-400"
+                    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/20"
                   },
                   {
                     title: "Leaderboard & Gamification",
                     desc: "Stay motivated with our global ranking system. Earn points by completing topics and solving problems. Compete with peers and climb the leaderboard.",
                     icon: Trophy,
-                    color: "bg-yellow-500/20 text-yellow-400"
+                    color: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 dark:bg-yellow-500/20"
                   },
                   {
                     title: "Games Section",
                     desc: "Learn while having fun! Our games section includes logic puzzles and coding-themed games like 2048 to keep your mind sharp.",
                     icon: Zap,
-                    color: "bg-purple-500/20 text-purple-400"
+                    color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 dark:bg-purple-500/20"
                   },
                   {
                     title: "Dummy Seminar Environment",
                     desc: "Experience a virtual classroom with AI-simulated students. Practice teaching or presenting concepts in an interactive environment that reacts to your input.",
                     icon: Video,
-                    color: "bg-red-500/20 text-red-400"
+                    color: "bg-red-500/10 text-red-600 dark:text-red-400 dark:bg-red-500/20"
                   }
                 ].map((feature, i) => (
                   <motion.div
@@ -1683,14 +1727,14 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="p-8 glass rounded-[40px] border border-white/10 flex flex-col items-start gap-6"
+                    className="p-8 glass rounded-[40px] flex flex-col items-start gap-6 border border-black/5 dark:border-white/5"
                   >
-                    <div className={cn("p-4 rounded-2xl", feature.color)}>
+                    <div className={cn("p-4 rounded-xl transition-colors", feature.color)}>
                       <feature.icon className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
-                      <p className="text-zinc-400 leading-relaxed">{feature.desc}</p>
+                      <h3 className="text-2xl font-bold mb-3">{feature.title}</h3>
+                      <p className={cn("transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>{feature.desc}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -1848,8 +1892,11 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                  <div className="lg:col-span-2 glass rounded-3xl p-8 relative overflow-hidden">
-                    <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-black/5 dark:border-white/10 mb-8">
+                  <div className="lg:col-span-2 glass rounded-3xl p-8 relative overflow-hidden backdrop-blur-md">
+                    <div className={cn(
+                      "h-4 rounded-full overflow-hidden border mb-8 transition-colors duration-500",
+                      isDarkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"
+                    )}>
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${currentProgress}%` }}
@@ -2168,11 +2215,16 @@ export default function App() {
                                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                            <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} hide />
+                            <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#27272a" : "#e5e7eb"} vertical={false} />
+                            <XAxis dataKey="date" stroke={isDarkMode ? "#71717a" : "#6b7280"} fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke={isDarkMode ? "#71717a" : "#6b7280"} fontSize={10} tickLine={false} axisLine={false} hide />
                             <Tooltip 
-                              contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                              contentStyle={{ 
+                                backgroundColor: isDarkMode ? '#18181b' : '#ffffff', 
+                                border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, 
+                                borderRadius: '12px',
+                                color: isDarkMode ? '#ffffff' : '#000000'
+                              }}
                               itemStyle={{ color: '#3b82f6' }}
                             />
                             <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
@@ -2202,9 +2254,14 @@ export default function App() {
                             >
                               <Cell fill="#3b82f6" />
                               <Cell fill="#8b5cf6" />
-                              <Cell fill="#27272a" />
+                              <Cell fill={isDarkMode ? "#27272a" : "#f1f5f9"} />
                             </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                            <Tooltip contentStyle={{ 
+                              backgroundColor: isDarkMode ? '#18181b' : '#ffffff', 
+                              border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, 
+                                borderRadius: '12px',
+                                color: isDarkMode ? '#ffffff' : '#000000'
+                            }} />
                           </PieChart>
                         </ResponsiveContainer>
                         <div className="flex flex-col gap-3 pr-4">
