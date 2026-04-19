@@ -80,13 +80,13 @@ import { format, subDays, startOfDay, isSameDay, eachDayOfInterval } from 'date-
 import confetti from 'canvas-confetti';
 import { io } from 'socket.io-client';
 import { searchCSConcept, getSimulatedStudentResponse, fetchChallengesForTopic, getGeneralizedTopicName, chatWithAI } from './services/gemini';
-import { progressService, Progress, SpeedCodingStat, Problem, Challenge } from './services/progress';
+import { progressService, Progress, Tutorial, Problem, CustomTopic } from './services/progress';
 import { cn } from './lib/utils';
 import { CodingHeatmap } from './components/CodingHeatmap';
-import { SpeedCoding } from './components/SpeedCoding';
+import { Tutorials } from './components/Tutorials';
 import { SilentStudy } from './components/SilentStudy';
 
-type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'speed-coding' | 'silent-study';
+type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'tutorials' | 'silent-study';
 
 const MOTIVATIONAL_QUOTES = [
   { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
@@ -936,30 +936,10 @@ export default function App() {
     if (!challenge) return;
     const updated = progressService.receiveChallenge(challenge);
     setProgress(updated);
-    setActiveTab('speed-coding');
+    setActiveTab('tutorials'); // Link challenge to tutorials page
   };
 
   const [showSilentStudy, setShowSilentStudy] = useState(false);
-  const [revisionNeeded, setRevisionNeeded] = useState<{ topicTitle: string; problem: any }[]>([]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const revision = progressService.getRevisionProblems();
-      setRevisionNeeded(revision);
-    }
-  }, [isAuthenticated, progress]);
-
-  const handleSpeedCodingComplete = (stats: { timeTaken: number; memoryUsed: number; problemsSolved: number }) => {
-    const newStat: SpeedCodingStat = {
-      challengeId: Math.random().toString(36).substr(2, 9),
-      ...stats,
-      timestamp: Date.now()
-    };
-    const updated = progressService.addSpeedCodingStat(newStat);
-    setProgress(updated);
-    triggerConfetti();
-    setActiveTab('dashboard');
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#0a0a0a] transition-colors duration-500">
@@ -1017,7 +997,7 @@ export default function App() {
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
             { id: 'search', icon: Search, label: 'Search', public: false },
-            { id: 'speed-coding', icon: Zap, label: 'Speed', public: false },
+            { id: 'tutorials', icon: Video, label: 'Tutorials', public: false },
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', public: false },
             { id: 'games', icon: Gamepad2, label: 'Games', public: false },
             { id: 'meet', icon: Video, label: 'Meet', public: false },
@@ -2358,6 +2338,79 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Saved Tutorials Roadmap Integration */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5 shadow-sm mt-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className={cn("text-xl font-bold flex items-center gap-3", isDarkMode ? "text-white" : "text-zinc-900")}>
+                        <Video className="w-6 h-6 text-purple-500" />
+                        Tutorials Roadmap
+                      </h3>
+                      <button 
+                        onClick={() => setActiveTab('tutorials')}
+                        className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center gap-1"
+                      >
+                        Explore <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {progress.savedTutorials.length === 0 ? (
+                        <div className="text-center py-12 text-zinc-500 text-sm glass rounded-[32px] border border-dashed border-white/10">
+                          No tutorials saved yet. Explore the Tutorials tab to build your video roadmap.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-4">
+                          {progress.savedTutorials.map((tut) => (
+                            <div key={tut.id} className={cn(
+                              "p-4 rounded-[32px] border flex flex-col md:flex-row items-center gap-4 group transition-all",
+                              isDarkMode ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-black/5 border-black/5 hover:bg-white shadow-sm"
+                            )}>
+                              <div className="w-full md:w-32 aspect-video rounded-2xl overflow-hidden shrink-0 relative">
+                                <img src={tut.thumbnail} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[1px]">
+                                  <Play className="w-6 h-6 text-white fill-current" />
+                                </div>
+                              </div>
+                              <div className="flex-1 w-full text-left">
+                                <h4 className={cn("font-bold text-sm mb-1 leading-tight line-clamp-1", isDarkMode ? "text-white" : "text-zinc-900")}>{tut.title}</h4>
+                                <p className="text-[10px] text-zinc-500 mb-3">{tut.channelName} • {tut.duration}</p>
+                                <div className="flex items-center justify-between">
+                                  <select 
+                                    value={tut.status}
+                                    onChange={(e) => {
+                                      const updated = progressService.updateTutorialStatus(tut.id, e.target.value as any);
+                                      setProgress(updated);
+                                    }}
+                                    className={cn(
+                                      "text-[10px] font-bold px-3 py-1.5 rounded-full focus:outline-none transition-all cursor-pointer border",
+                                      tut.status === 'completed' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                                      tut.status === 'in_progress' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                      (isDarkMode ? "bg-white/5 text-zinc-500 border-white/10" : "bg-white text-zinc-500 border-black/5 shadow-sm")
+                                    )}
+                                  >
+                                    <option value="not_started">Not Started</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                  </select>
+                                  <button 
+                                    onClick={() => {
+                                      const updated = progressService.removeTutorialFromRoadmap(tut.id);
+                                      setProgress(updated);
+                                    }}
+                                    className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
+                                    title="Remove from Roadmap"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Right Column: Social & Leaderboard */}
@@ -2516,15 +2569,15 @@ export default function App() {
 
 
 
-          {activeTab === 'speed-coding' && isAuthenticated && (
+          {activeTab === 'tutorials' && isAuthenticated && (
             <motion.div 
-              key="speed-coding"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto p-8"
+              key="tutorials"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="flex-1 overflow-y-auto"
             >
-              <SpeedCoding onComplete={handleSpeedCodingComplete} isDarkMode={isDarkMode} />
+              <Tutorials isDarkMode={isDarkMode} />
             </motion.div>
           )}
 

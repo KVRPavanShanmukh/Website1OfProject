@@ -140,3 +140,73 @@ export async function chatWithAI(message: string, history: { role: 'user' | 'mod
   const response = await chat.sendMessage({ message });
   return response.text;
 }
+
+export async function searchTutorials(query: string, category: string = 'All') {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Search for high-quality YouTube tutorials for the topic: "${query}" in the category: "${category}".
+    
+    CRITICAL: Fetch only REAL YouTube video results. 
+    Prioritize:
+    - Most viewed videos
+    - High engagement
+    - Trusted channels (e.g., FreeCodeCamp, Traversy Media, Fireship, etc.)
+    - Beginner-friendly tutorials
+    - Long-form complete tutorials
+    
+    Return a list of videos with their metadata.`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING, description: "YouTube Video ID (standard 11 characters, or a realistic slug)" },
+            title: { type: Type.STRING },
+            channelName: { type: Type.STRING },
+            views: { type: Type.STRING },
+            uploadDate: { type: Type.STRING },
+            duration: { type: Type.STRING },
+            thumbnail: { type: Type.STRING, description: "Realistic YouTube Thumbnail URL (high quality)" },
+            category: { type: Type.STRING },
+            aiScore: { type: Type.NUMBER, description: "Estimated quality score from 1-100" }
+          },
+          required: ["id", "title", "channelName", "views", "uploadDate", "duration", "thumbnail", "category", "aiScore"]
+        }
+      }
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || "[]");
+  } catch (e) {
+    console.error("Failed to parse tutorials:", e);
+    // Return mock data if service fails
+    return [
+      {
+        id: "vLnPwxZdW4Y",
+        title: "C++ Programming Full Course for Beginners",
+        channelName: "FreeCodeCamp",
+        views: "12M views",
+        uploadDate: "3 years ago",
+        duration: "31:05:22",
+        thumbnail: "https://picsum.photos/seed/tutorial1/1920/1080",
+        category: "Programming",
+        aiScore: 98
+      },
+      {
+        id: "rfscVS0vtbw",
+        title: "Learn Python - Full Course for Beginners [Tutorial]",
+        channelName: "FreeCodeCamp",
+        views: "45M views",
+        uploadDate: "5 years ago",
+        duration: "4:26:52",
+        thumbnail: "https://picsum.photos/seed/tutorial2/1920/1080",
+        category: "Programming",
+        aiScore: 95
+      }
+    ];
+  }
+}

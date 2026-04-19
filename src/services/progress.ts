@@ -64,6 +64,20 @@ export interface SpeedCodingStat {
   timestamp: number;
 }
 
+export interface Tutorial {
+  id: string; // YouTube video ID or generated ID
+  title: string;
+  channelName: string;
+  views: string;
+  uploadDate: string;
+  duration: string;
+  thumbnail: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  savedAt: number;
+  category: string;
+  aiScore?: number;
+}
+
 export interface Progress {
   userName: string;
   completedTopics: string[]; // For search-based topics
@@ -84,8 +98,8 @@ export interface Progress {
   points: number;
   // New Features
   heatmap: { [date: string]: number }; // YYYY-MM-DD -> count
-  speedCodingStats: SpeedCodingStat[];
   challenges: Challenge[];
+  savedTutorials: Tutorial[];
   lastRevisionCheck: number;
 }
 
@@ -110,8 +124,8 @@ export const progressService = {
       activityFeed: [],
       points: 0,
       heatmap: {},
-      speedCodingStats: [],
       challenges: [],
+      savedTutorials: [],
       lastRevisionCheck: 0
     };
     if (!data) return defaultProgress;
@@ -372,10 +386,34 @@ export const progressService = {
     progressService.saveProgress(p);
     return p;
   },
-  addSpeedCodingStat: (stat: SpeedCodingStat) => {
+  addTutorialToRoadmap: (tutorial: Omit<Tutorial, 'savedAt' | 'status'>) => {
     const p = progressService.getProgress();
-    p.speedCodingStats.push(stat);
-    p.points += stat.problemsSolved * 100;
+    if (!p.savedTutorials.find(t => t.id === tutorial.id)) {
+      p.savedTutorials.push({
+        ...tutorial,
+        status: 'not_started',
+        savedAt: Date.now()
+      });
+      p.points += 50; // Reward for saving to roadmap
+      progressService.saveProgress(p);
+    }
+    return p;
+  },
+  updateTutorialStatus: (id: string, status: Tutorial['status']) => {
+    const p = progressService.getProgress();
+    p.savedTutorials = p.savedTutorials.map(t => 
+      t.id === id ? { ...t, status } : t
+    );
+    if (status === 'completed') {
+      p.points += 200; // Reward for completing a tutorial
+      progressService.updateHeatmap();
+    }
+    progressService.saveProgress(p);
+    return p;
+  },
+  removeTutorialFromRoadmap: (id: string) => {
+    const p = progressService.getProgress();
+    p.savedTutorials = p.savedTutorials.filter(t => t.id !== id);
     progressService.saveProgress(p);
     return p;
   },
