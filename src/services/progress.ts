@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 export interface Problem {
   id: string;
@@ -76,6 +76,38 @@ export interface Tutorial {
   savedAt: number;
   category: string;
   aiScore?: number;
+  watchedPercent?: number;
+  lastPosition?: number;
+  lastWatchedAt?: number;
+}
+
+export interface CodingProfile {
+  platform: 'HackerRank' | 'CodeChef' | 'LeetCode' | 'Codeforces';
+  usernameOrUrl: string;
+  stats?: {
+    rating?: number;
+    problemsSolved?: number;
+    rank?: string | number;
+    badges?: number;
+    contestActivity?: number;
+    submissionStreak?: number;
+    lastActive?: number;
+  };
+  lastFetched?: number;
+}
+
+export interface GameStatus {
+  gameId: string;
+  chancesUsed: number;
+  lastPlayed: number;
+  cooldownUntil: number;
+  bestScore?: number;
+}
+
+export interface BrainStats {
+  streak: number;
+  lastPlayDate: string; // YYYY-MM-DD
+  energyScore: number;
 }
 
 export interface Progress {
@@ -101,6 +133,10 @@ export interface Progress {
   challenges: Challenge[];
   savedTutorials: Tutorial[];
   lastRevisionCheck: number;
+  // Profile Tracking
+  codingProfiles: CodingProfile[];
+  gameStatuses: { [gameId: string]: GameStatus };
+  brainStats: BrainStats;
 }
 
 export const progressService = {
@@ -126,7 +162,14 @@ export const progressService = {
       heatmap: {},
       challenges: [],
       savedTutorials: [],
-      lastRevisionCheck: 0
+      lastRevisionCheck: 0,
+      codingProfiles: [],
+      gameStatuses: {},
+      brainStats: {
+        streak: 0,
+        lastPlayDate: '',
+        energyScore: 0
+      }
     };
     if (!data) return defaultProgress;
     try {
@@ -415,6 +458,81 @@ export const progressService = {
     const p = progressService.getProgress();
     p.savedTutorials = p.savedTutorials.filter(t => t.id !== id);
     progressService.saveProgress(p);
+    return p;
+  },
+
+  // Coding Profile Tracker
+  addCodingProfile: (platform: CodingProfile['platform'], usernameOrUrl: string) => {
+    const p = progressService.getProgress();
+    if (!p.codingProfiles.find(cp => cp.platform === platform)) {
+      p.codingProfiles.push({ platform, usernameOrUrl, lastFetched: Date.now() });
+      progressService.saveProgress(p);
+    }
+    return p;
+  },
+  removeCodingProfile: (platform: string) => {
+    const p = progressService.getProgress();
+    p.codingProfiles = p.codingProfiles.filter(cp => cp.platform !== platform);
+    progressService.saveProgress(p);
+    return p;
+  },
+  updateCodingProfileStats: (platform: string, stats: CodingProfile['stats']) => {
+    const p = progressService.getProgress();
+    p.codingProfiles = p.codingProfiles.map(cp => 
+      cp.platform === platform ? { ...cp, stats, lastFetched: Date.now() } : cp
+    );
+    progressService.saveProgress(p);
+    return p;
+  },
+
+  // Brain Games System
+  updateGameStatus: (gameId: string, score: number) => {
+    const p = progressService.getProgress();
+    const now = Date.now();
+    const status = p.gameStatuses[gameId] || { gameId, chancesUsed: 0, lastPlayed: 0, cooldownUntil: 0 };
+    
+    status.chancesUsed += 1;
+    status.lastPlayed = now;
+    if (score > (status.bestScore || 0)) {
+      status.bestScore = score;
+    }
+
+    if (status.chancesUsed >= 3) {
+      status.cooldownUntil = now + 12 * 60 * 60 * 1000;
+    }
+
+    p.gameStatuses[gameId] = status;
+
+    // Update Brain Stats
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (p.brainStats.lastPlayDate !== today) {
+      if (p.brainStats.lastPlayDate === format(subDays(new Date(), 1), 'yyyy-MM-dd')) {
+        p.brainStats.streak += 1;
+      } else {
+        p.brainStats.streak = 1;
+      }
+      p.brainStats.lastPlayDate = today;
+    }
+
+    // Energy Score Logic (Simulated)
+    p.brainStats.energyScore = Math.min(100, (p.brainStats.energyScore || 50) + 5);
+
+    progressService.saveProgress(p);
+    return p;
+  },
+  checkGameCooldowns: () => {
+    const p = progressService.getProgress();
+    const now = Date.now();
+    let changed = false;
+    Object.keys(p.gameStatuses).forEach(gid => {
+      const s = p.gameStatuses[gid];
+      if (s.cooldownUntil > 0 && now > s.cooldownUntil) {
+        s.cooldownUntil = 0;
+        s.chancesUsed = 0;
+        changed = true;
+      }
+    });
+    if (changed) progressService.saveProgress(p);
     return p;
   },
   sendChallenge: (friendName: string, problems: Problem[], timeLimit: number) => {

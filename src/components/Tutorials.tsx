@@ -37,12 +37,13 @@ export function Tutorials({ isDarkMode }: TutorialsProps) {
     setSavedIds(new Set(progress.savedTutorials.map(t => t.id)));
   }, [progress]);
 
-  // Initial trending tutorials
-  useEffect(() => {
-    handleSearch('Top computer science tutorials 2024');
-  }, []);
+  // Initial trending tutorials - REMOVED for Priority 4 requirement
+  // useEffect(() => {
+  //   handleSearch('Top computer science tutorials 2024');
+  // }, []);
 
   const handleSearch = async (query: string = searchQuery, cat: string = activeCategory) => {
+    if (!query.trim()) return;
     setIsLoading(true);
     try {
       const videos = await searchTutorials(query, cat);

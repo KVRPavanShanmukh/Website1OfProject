@@ -1,28 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, Volume2, VolumeX, Timer, Play, Pause, RotateCcw, X } from 'lucide-react';
+import { Moon, Sun, Volume2, VolumeX, Timer, Play, Pause, RotateCcw, X, ChevronLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface SilentStudyProps {
-  onClose: () => void;
+  onBack: () => void;
   isDarkMode?: boolean;
+  timeLeft: number;
+  setTimeLeft: React.Dispatch<React.SetStateAction<number>>;
+  isActive: boolean;
+  setIsActive: (val: boolean) => void;
+  soundType: 'rain' | 'waves' | 'lofi';
+  setSoundType: (val: 'rain' | 'waves' | 'lofi') => void;
+  volume: number;
+  setVolume: (val: number) => void;
 }
 
-export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose, isDarkMode = true }) => {
-  const [timeLeft, setTimeLeft] = useState(1500); // 25 minutes Pomodoro
-  const [isActive, setIsActive] = useState(false);
+export const SilentStudy: React.FC<SilentStudyProps> = ({ 
+  onBack, 
+  isDarkMode = true,
+  timeLeft,
+  setTimeLeft,
+  isActive,
+  setIsActive,
+  soundType,
+  setSoundType,
+  volume,
+  setVolume
+}) => {
   const [isMuted, setIsMuted] = useState(false);
-  const [soundType, setSoundType] = useState<'rain' | 'waves' | 'lofi'>('rain');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const SOUND_URLS = {
+    rain: 'https://cdn.pixabay.com/audio/2021/08/09/audio_82c2196696.mp3',
+    waves: 'https://cdn.pixabay.com/audio/2022/03/10/audio_b3eaac5e16.mp3',
+    lofi: 'https://cdn.pixabay.com/audio/2022/05/27/audio_180873748b.mp3'
+  };
 
   useEffect(() => {
-    let timer: any;
-    if (isActive && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft(t => t - 1);
-      }, 1000);
+    if (!audioRef.current) {
+      audioRef.current = new Audio(SOUND_URLS[soundType]);
+      audioRef.current.loop = true;
     }
-    return () => clearInterval(timer);
-  }, [isActive, timeLeft]);
+
+    const audio = audioRef.current;
+    audio.src = SOUND_URLS[soundType];
+    audio.load();
+    
+    if (isActive && !isMuted) {
+      audio.play().catch(e => console.log("Audio play failed:", e));
+    } else {
+      audio.pause();
+    }
+
+    return () => {
+      audio.pause();
+    };
+  }, [soundType, isActive, isMuted]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+  }, [volume, isMuted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -41,13 +81,14 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose, isDarkMode = 
       )}
     >
       <button 
-        onClick={onClose}
+        onClick={onBack}
         className={cn(
-          "absolute top-8 right-8 p-4 rounded-full transition-all group",
-          isDarkMode ? "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-white" : "bg-black/5 text-zinc-500 hover:bg-black/10 hover:text-zinc-900"
+          "absolute top-8 left-8 px-6 py-3 rounded-2xl transition-all group flex items-center gap-2 font-bold",
+          isDarkMode ? "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white" : "bg-black/5 text-zinc-500 hover:bg-black/10 hover:text-zinc-900"
         )}
       >
-        <X className="w-6 h-6" />
+        <ChevronLeft className="w-5 h-5" />
+        BACK
       </button>
 
       <div className="max-w-2xl w-full text-center space-y-12">
@@ -104,21 +145,38 @@ export const SilentStudy: React.FC<SilentStudyProps> = ({ onClose, isDarkMode = 
           </button>
         </div>
 
-        <div className="flex gap-4 justify-center">
-          {(['rain', 'waves', 'lofi'] as const).map(sound => (
-            <button
-              key={sound}
-              onClick={() => setSoundType(sound)}
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex gap-4 justify-center">
+            {(['rain', 'waves', 'lofi'] as const).map(sound => (
+              <button
+                key={sound}
+                onClick={() => setSoundType(sound)}
+                className={cn(
+                  "px-6 py-2 rounded-full text-xs font-bold transition-all border",
+                  soundType === sound 
+                    ? (isDarkMode ? "bg-white text-black border-white" : "bg-zinc-900 text-white border-zinc-900") 
+                    : (isDarkMode ? "bg-transparent text-zinc-500 border-white/10 hover:border-white/30" : "bg-transparent text-zinc-500 border-black/10 hover:border-black/30")
+                )}
+              >
+                {sound.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4 w-full max-w-xs">
+            <Volume2 className={cn("w-4 h-4", isDarkMode ? "text-zinc-500" : "text-zinc-400")} />
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={volume}
+              onChange={(e) => setVolume(parseInt(e.target.value))}
               className={cn(
-                "px-6 py-2 rounded-full text-xs font-bold transition-all border",
-                soundType === sound 
-                  ? (isDarkMode ? "bg-white text-black border-white" : "bg-zinc-900 text-white border-zinc-900") 
-                  : (isDarkMode ? "bg-transparent text-zinc-500 border-white/10 hover:border-white/30" : "bg-transparent text-zinc-500 border-black/10 hover:border-black/30")
+                "flex-1 h-1.5 rounded-full appearance-none cursor-pointer",
+                isDarkMode ? "bg-white/10" : "bg-black/10"
               )}
-            >
-              {sound.toUpperCase()}
-            </button>
-          ))}
+            />
+          </div>
         </div>
 
         <p className={cn("text-xs font-bold tracking-widest uppercase transition-colors", isDarkMode ? "text-zinc-600" : "text-zinc-400")}>
