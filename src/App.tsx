@@ -8,6 +8,9 @@ import {
   Users, 
   Mic, 
   MicOff, 
+  Mic2,
+  Code,
+  ArrowRight,
   Video as VideoIcon, 
   VideoOff, 
   MessageSquare, 
@@ -88,6 +91,9 @@ import { SilentStudy } from './components/SilentStudy';
 import { FloatingTimer } from './components/FloatingTimer';
 import { CodingProfileTracker } from './components/CodingProfileTracker';
 import { BrainGames } from './components/BrainGames';
+import { TeachingRoom } from './components/TeachingRoom';
+import { InterviewRoom } from './components/InterviewRoom';
+import { Feedback } from './components/Feedback';
 
 type Tab = 'landing' | 'login' | 'search' | 'dashboard' | 'meet' | 'games' | 'about' | 'features' | 'tutorials' | 'silent-study';
 
@@ -235,6 +241,7 @@ export default function App() {
   }, [isFocusActive, focusTimeLeft]);
 
   const [isMeetActive, setIsMeetActive] = useState(false);
+  const [meetMode, setMeetMode] = useState<'teaching' | 'seminar' | 'interview'>('teaching');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -249,7 +256,9 @@ export default function App() {
   const [studentInstruction, setStudentInstruction] = useState('A curious beginner who asks deep questions');
   const [isStudentTyping, setIsStudentTyping] = useState(false);
   const [isPresenting, setIsPresenting] = useState(false);
-  const [audienceState, setAudienceState] = useState<'attentive' | 'engaged' | 'idle'>('attentive');
+  const [sessionEndedData, setSessionEndedData] = useState<any>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [activeParticipantsCount, setActiveParticipantsCount] = useState(0);
   
   // Sidebar Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -300,18 +309,6 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isPresenting) {
-      setAudienceState('engaged');
-      if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
-      interactionTimeoutRef.current = setTimeout(() => {
-        setAudienceState('idle');
-      }, 5000); // Idle after 5 seconds of no typing
-    } else {
-      setAudienceState('attentive');
-    }
-  }, [meetInput, isPresenting]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -445,6 +442,11 @@ export default function App() {
     triggerConfetti();
     // Redirect to landing page (which will now show the hero section)
     setActiveTab('landing');
+  };
+
+  const handleRemoveCodingProfile = (platform: string) => {
+    const updated = progressService.removeCodingProfile(platform);
+    setProgress(updated);
   };
 
   const handleLogout = () => {
@@ -771,10 +773,10 @@ export default function App() {
           {[
             { id: 'landing', icon: Home, label: 'Home', public: true },
             { id: 'search', icon: Search, label: 'Search', public: false },
-            { id: 'tutorials', icon: Video, label: 'Tutorials', public: false },
+            { id: 'tutorials', icon: Play, label: 'Tutorials', public: false },
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', public: false },
             { id: 'games', icon: Gamepad2, label: 'Games', public: false },
-            { id: 'meet', icon: Video, label: 'Meet', public: false },
+            { id: 'meet', icon: Video, label: 'Meets', public: false },
             { id: 'about', icon: Info, label: 'About', public: false },
             ...(!isAuthenticated ? [{ id: 'login', icon: LogIn, label: 'Login', public: true }] : [])
           ].map((tab) => (
@@ -2122,6 +2124,21 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Coding Activity Tracker */}
+                  <div className="glass p-8 rounded-[40px] border border-white/5">
+                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                      <Code2 className="w-6 h-6 text-blue-500" />
+                      Coding Activity Tracker
+                    </h3>
+                    <CodingProfileTracker 
+                      isDarkMode={isDarkMode} 
+                      profiles={progress.codingProfiles || []} 
+                      onAdd={handleAddCodingProfile}
+                      onRemove={handleRemoveCodingProfile}
+                      onRefresh={handleRefreshCodingProfile}
+                    />
+                  </div>
+
                   {/* Saved Tutorials Roadmap Integration */}
                   <div className="glass p-8 rounded-[40px] border border-white/5 shadow-sm mt-8">
                     <div className="flex items-center justify-between mb-8">
@@ -2516,7 +2533,7 @@ export default function App() {
           )}
 
           {/* Meet Tab - Persistent if active */}
-          {(activeTab === 'meet' || isMeetActive) && isAuthenticated && (
+          {(activeTab === 'meet' || isMeetActive || showFeedback) && isAuthenticated && (
             <motion.div 
               key="meet"
               initial={activeTab === 'meet' ? { opacity: 0, scale: 0.95 } : false}
@@ -2526,325 +2543,84 @@ export default function App() {
                 activeTab !== 'meet' && "hidden"
               )}
             >
-              {!isMeetActive ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="max-w-md w-full glass rounded-3xl p-8 text-center relative overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl">
-                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Video className="w-10 h-10 text-blue-500" />
-                    </div>
-                    <h2 className="text-3xl font-black mb-4">Teaching Room</h2>
-                    <p className={cn("mb-8 transition-colors", isDarkMode ? "text-zinc-400" : "text-zinc-600")}>
-                      Practice teaching to AI students. They'll listen, ask questions, and respond based on your instructions.
-                      <br /><span className="text-[10px] text-blue-500/60 mt-2 block">Tip: Use the monitor icon to share your screen and present your concepts.</span>
-                    </p>
-                    
-                    <div className="text-left mb-8">
-                      <label className={cn("text-xs font-bold uppercase tracking-widest mb-2 block transition-colors", isDarkMode ? "text-zinc-500" : "text-zinc-500")}>Student Persona</label>
-                      <select 
-                        value={studentInstruction}
-                        onChange={(e) => setStudentInstruction(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl p-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none shadow-sm"
+              {!isMeetActive && !showFeedback ? (
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center text-zinc-900 dark:text-white">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center mb-6 shadow-xl">
+                    <Video className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-black mb-2 tracking-tighter">Unified Meets</h2>
+                  <p className="text-zinc-500 max-w-lg mb-10 text-sm">
+                    Select your session type. Whether it's a seminar, coding interview, or a teaching class.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
+                    {[
+                      { id: 'teaching', title: 'Teaching Room', icon: BookOpen, desc: 'Interactive digital classroom for teachers and students.' },
+                      { id: 'seminar', title: 'Seminar Room', icon: Mic2, desc: 'Large scale presentation with controlled Q&A session.' },
+                      { id: 'interview', title: 'Interview Suite', icon: Code, desc: 'Two-person coding interview with live editor.' }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => {
+                          setMeetMode(mode.id as any);
+                          setIsMeetActive(true);
+                        }}
+                        className="glass p-8 rounded-3xl border border-white/5 hover:border-blue-500/50 transition-all group text-left flex flex-col h-full"
                       >
-                        <option value="A curious beginner who asks deep questions">Curious Beginner</option>
-                        <option value="A skeptical student who needs proof for everything">Skeptical Expert</option>
-                        <option value="A distracted student who needs engagement">Distracted Peer</option>
-                        <option value="A supportive friend who encourages you">Supportive Friend</option>
-                      </select>
-                    </div>
-
-                    <button 
-                      onClick={() => setIsMeetActive(true)}
-                      className="w-full py-4 bg-blue-500 text-black rounded-2xl font-bold hover:bg-blue-400 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                    >
-                      Start Session
-                    </button>
+                         <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all text-zinc-500">
+                            <mode.icon className="w-6 h-6" />
+                         </div>
+                         <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors">{mode.title}</h3>
+                         <p className="text-xs text-zinc-500 leading-relaxed">{mode.desc}</p>
+                         <div className="mt-auto pt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                           Initialize Room <ArrowRight className="w-3 h-3" />
+                         </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
+              ) : isMeetActive ? (
+                <>
+                  {meetMode === 'interview' ? (
+                    <InterviewRoom
+                      socket={socket}
+                      user={{ email: userEmail, name: progress.userName || userEmail.split('@')[0] }}
+                      isDarkMode={isDarkMode}
+                      onLeave={(sessionData) => {
+                        setIsMeetActive(false);
+                        if (sessionData) {
+                          setSessionEndedData(sessionData);
+                          setShowFeedback(true);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <TeachingRoom 
+                      socket={socket} 
+                      user={{ email: userEmail, name: progress.userName || userEmail.split('@')[0] }}
+                      isDarkMode={isDarkMode}
+                      mode={meetMode as 'teaching' | 'seminar'}
+                      onLeave={(sessionData) => {
+                        setIsMeetActive(false);
+                        if (sessionData) {
+                          setSessionEndedData(sessionData);
+                          setShowFeedback(true);
+                          triggerConfetti();
+                        }
+                      }}
+                    />
+                  )}
+                </>
               ) : (
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 overflow-hidden">
-                  {/* Main Video Area */}
-                  <div className="lg:col-span-3 flex flex-col gap-4">
-                    <div className={cn(
-                      "flex-1 relative rounded-3xl overflow-hidden border shadow-2xl transition-colors",
-                      isDarkMode ? "bg-zinc-900 border-white/5" : "bg-white border-black/5"
-                    )}>
-                      {/* Seminar Hall Background */}
-                      <div className="absolute inset-0 pointer-events-none opacity-40">
-                        <div className={cn(
-                          "absolute inset-0 z-10",
-                          isDarkMode ? "bg-gradient-to-t from-black via-transparent to-transparent" : "bg-gradient-to-t from-white via-transparent to-transparent"
-                        )} />
-                        <div className="grid grid-cols-8 gap-4 p-8 h-full items-end justify-items-center">
-                          {Array.from({ length: 24 }).map((_, i) => (
-                            <motion.div 
-                              key={i}
-                              animate={
-                                audienceState === 'engaged' ? {
-                                  y: [0, -5, 0],
-                                  rotate: [0, 2, -2, 0],
-                                } : audienceState === 'idle' ? {
-                                  y: 0,
-                                  rotate: 0,
-                                  opacity: 0.6
-                                } : {
-                                  y: [0, -2, 0],
-                                  rotate: 0
-                                }
-                              }
-                              transition={{
-                                duration: audienceState === 'engaged' ? 2 : 4,
-                                repeat: Infinity,
-                                delay: i * 0.1
-                              }}
-                              className={cn("w-8 h-12 rounded-t-full relative transition-colors", isDarkMode ? "bg-zinc-800" : "bg-zinc-200")}
-                            >
-                              <div className={cn("w-6 h-6 rounded-full absolute -top-4 left-1 transition-colors", isDarkMode ? "bg-zinc-700" : "bg-zinc-300")} />
-                              {audienceState === 'idle' && (
-                                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
-                                  <div className="w-2 h-0.5 bg-zinc-600 rounded-full" />
-                                  <div className="w-2 h-0.5 bg-zinc-600 rounded-full" />
-                                </div>
-                              )}
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {(isCamOn || isScreenSharing) ? (
-                        <div className="absolute inset-0 flex items-center justify-center p-12 z-20">
-                          <div className="w-full max-w-4xl aspect-video relative rounded-2xl overflow-hidden border-4 border-zinc-800 shadow-2xl bg-black">
-                            <video 
-                              ref={videoRef} 
-                              autoPlay 
-                              muted 
-                              playsInline 
-                              className={cn(
-                                "w-full h-full",
-                                isScreenSharing ? "object-contain" : "object-cover mirror"
-                              )}
-                            />
-                            {/* Podium Overlay */}
-                            {!isScreenSharing && (
-                              <div className="absolute bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t-4 border-zinc-800 flex items-center justify-center">
-                                <div className="w-32 h-4 bg-blue-500/20 rounded-full" />
-                              </div>
-                            )}
-                            {isScreenSharing && (
-                              <div className="absolute top-4 right-4 px-3 py-1.5 bg-blue-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 shadow-lg">
-                                <Monitor className="w-3 h-3" />
-                                Sharing Screen
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={cn("w-full h-full flex items-center justify-center transition-colors shadow-inner z-20", isDarkMode ? "bg-zinc-900" : "bg-zinc-50")}>
-                          <div className="w-32 h-32 bg-blue-500/10 rounded-full flex items-center justify-center">
-                            <VideoOff className="w-12 h-12 text-blue-500/50" />
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className={cn(
-                        "absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 glass rounded-full z-30 border transition-all shadow-xl",
-                        isDarkMode ? "border-white/10" : "border-black/5"
-                      )}>
-                        <button 
-                          onClick={() => setIsPresenting(!isPresenting)}
-                          className={cn(
-                            "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                            isPresenting ? "bg-blue-500 text-black shadow-lg shadow-blue-500/20" : (isDarkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-black/5 text-black hover:bg-black/10")
-                          )}
-                        >
-                          {isPresenting ? 'Stop Presenting' : 'Start Presentation'}
-                        </button>
-                        <div className="w-px h-6 bg-white/10" />
-                        <button 
-                          onClick={() => setIsMicOn(!isMicOn)}
-                          className={cn(
-                            "p-3 rounded-full transition-all",
-                            isMicOn 
-                              ? (isDarkMode ? "bg-white/10 hover:bg-white/20" : "bg-black/5 hover:bg-black/10") 
-                              : "bg-red-500 text-white shadow-lg shadow-red-500/20"
-                          )}
-                          title={isMicOn ? "Mute" : "Unmute"}
-                        >
-                          {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                        </button>
-                        <button 
-                          onClick={() => setIsCamOn(!isCamOn)}
-                          className={cn(
-                            "p-3 rounded-full transition-all",
-                            isCamOn ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"
-                          )}
-                          title={isCamOn ? "Turn Off Camera" : "Turn On Camera"}
-                        >
-                          {isCamOn ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                        </button>
-                        <button 
-                          onClick={handleScreenShare}
-                          className={cn(
-                            "p-3 rounded-full transition-all",
-                            isScreenSharing ? "bg-blue-500 text-black" : "bg-white/10 hover:bg-white/20"
-                          )}
-                          title="Share Screen"
-                        >
-                          <Monitor className="w-5 h-5" />
-                        </button>
-                        <button 
-                          onClick={handleYoutubeStream}
-                          className={cn(
-                            "p-3 rounded-full transition-all",
-                            isYoutubeStreaming ? "bg-red-500 text-white animate-pulse" : "bg-white/10 hover:bg-white/20"
-                          )}
-                          title="YouTube Live"
-                        >
-                          <Youtube className="w-5 h-5" />
-                        </button>
-                        <div className="w-px h-6 bg-white/10" />
-                        <button 
-                          onClick={() => setIsMeetActive(false)}
-                          className="px-6 py-3 bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition-all active:scale-95"
-                        >
-                          End Call
-                        </button>
-                      </div>
-
-                      <div className="absolute top-6 left-6 px-4 py-2 glass rounded-full flex items-center gap-2 z-30">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full animate-pulse",
-                          isPresenting ? "bg-blue-500" : "bg-red-500"
-                        )} />
-                        <span className="text-xs font-bold uppercase tracking-widest">
-                          {isPresenting ? 'Mode: Seminar Presentation' : 'Mode: Teaching Room'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 h-32">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="glass rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                          <Users className="w-8 h-8 text-zinc-800 group-hover:text-blue-500/20 transition-colors" />
-                          <div className="absolute bottom-2 left-2 text-[10px] font-bold text-zinc-500 uppercase">AI Participant {i}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>                  {/* Sidebar: Participants & Chat */}
-                  <div className="lg:col-span-1 flex flex-col gap-6 overflow-hidden">
-                    {/* Participants List */}
-                    <div className="flex flex-col glass rounded-3xl overflow-hidden border border-white/5 max-h-[40%]">
-                      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-400" />
-                          <span className="font-bold text-sm">Participants</span>
-                        </div>
-                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full font-bold">4 Online</span>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        {[
-                          { name: progress.userName || 'You', role: 'Teacher', status: 'Host', color: 'bg-blue-500' },
-                          { name: 'AI Student 1', role: 'Student', status: 'Curious', color: 'bg-blue-500' },
-                          { name: 'AI Student 2', role: 'Student', status: 'Skeptical', color: 'bg-purple-500' },
-                          { name: 'AI Student 3', role: 'Student', status: 'Distracted', color: 'bg-orange-500' },
-                        ].map((participant, i) => (
-                          <div 
-                            key={i}
-                            className="flex items-center gap-3 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all"
-                          >
-                            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-black font-black text-xs", participant.color)}>
-                              {participant.name[0]}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-bold truncate">{participant.name}</h4>
-                                <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">{participant.role}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-1 h-1 rounded-full bg-blue-500" />
-                                <span className="text-[9px] text-zinc-500">{participant.status}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <Mic className="w-2.5 h-2.5 text-zinc-600" />
-                              <VideoIcon className="w-2.5 h-2.5 text-zinc-600" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Class Chat */}
-                    <div className="flex-1 flex flex-col glass rounded-3xl overflow-hidden border border-white/5">
-                      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-2 bg-black/5 dark:bg-white/5">
-                        <MessageSquare className="w-4 h-4 text-blue-400" />
-                        <span className="font-bold text-sm">Class Chat</span>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {meetMessages.length === 0 && (
-                          <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                            <Sparkles className="w-8 h-8 text-zinc-800 mb-2" />
-                            <p className="text-xs text-zinc-500">Start teaching! Type your lecture points here, and the students will respond.</p>
-                          </div>
-                        )}
-                        {meetMessages.map((msg, i) => (
-                          <motion.div 
-                            key={i} 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn(
-                              "flex flex-col",
-                              msg.role === 'teacher' ? "items-end" : "items-start"
-                            )}
-                          >
-                            <span className="text-[10px] text-zinc-500 mb-1 uppercase tracking-widest font-bold">
-                              {msg.role === 'teacher' ? 'You' : 'Student'}
-                            </span>
-                            <div className={cn(
-                              "max-w-[85%] p-3 rounded-2xl text-sm shadow-sm",
-                              msg.role === 'teacher' 
-                                ? "bg-blue-500 text-black rounded-tr-none" 
-                                : "bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-tl-none"
-                            )}>
-                              {msg.text}
-                            </div>
-                          </motion.div>
-                        ))}
-                        {isStudentTyping && (
-                          <div className="flex flex-col items-start">
-                            <span className="text-[10px] text-zinc-500 mb-1 uppercase tracking-widest font-bold">Student</span>
-                            <div className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 p-3 rounded-2xl rounded-tl-none">
-                              <div className="flex gap-1">
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <form onSubmit={handleSendMessage} className="p-4 bg-black/5 dark:bg-white/5 border-t border-black/5 dark:border-white/10">
-                        <div className="relative">
-                          <input 
-                            type="text"
-                            value={meetInput}
-                            onChange={(e) => setMeetInput(e.target.value)}
-                            placeholder="Teach something..."
-                            className="w-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                          />
-                          <button 
-                            type="submit"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:text-blue-400 transition-colors"
-                          >
-                            <Send className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
+                <Feedback 
+                  sessionData={sessionEndedData}
+                  isDarkMode={isDarkMode}
+                  onComplete={() => {
+                    setShowFeedback(false);
+                    setSessionEndedData(null);
+                    setActiveTab('dashboard');
+                  }}
+                />
               )}
             </motion.div>
           )}
