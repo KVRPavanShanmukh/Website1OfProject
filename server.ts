@@ -37,6 +37,9 @@ async function startServer() {
     code?: string;
     language?: string;
     problem?: { title: string; statement: string; constraints?: string };
+    isRoadmapShared?: boolean;
+    sharedRoadmap?: any;
+    aiFeedback?: string;
   }> = {};
 
   io.on("connection", (socket) => {
@@ -113,7 +116,26 @@ async function startServer() {
       const room = rooms[data.roomId];
       if (room && room.hostId === socket.id && room.type === 'interview') {
         room.problem = data.problem;
+        io.to(data.roomId).emit("problem_updated", data.problem);
         io.to(data.roomId).emit("room_update", room);
+      }
+    });
+
+    socket.on("share_roadmap", (data: { roomId: string; roadmap: any }) => {
+      const room = rooms[data.roomId];
+      if (room && room.type === 'interview') {
+        room.isRoadmapShared = true;
+        room.sharedRoadmap = data.roadmap;
+        socket.to(data.roomId).emit("roadmap_received", data.roadmap);
+        io.to(data.roomId).emit("room_update", room);
+      }
+    });
+
+    socket.on("sync_ai_feedback", (data: { roomId: string; text: string }) => {
+      const room = rooms[data.roomId];
+      if (room && room.type === 'interview') {
+        room.aiFeedback = data.text;
+        socket.to(data.roomId).emit("ai_feedback_received", data.text);
       }
     });
 

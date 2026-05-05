@@ -2586,6 +2586,7 @@ export default function App() {
                       socket={socket}
                       user={{ email: userEmail, name: progress.userName || userEmail.split('@')[0] }}
                       isDarkMode={isDarkMode}
+                      progress={progress}
                       onLeave={(sessionData) => {
                         setIsMeetActive(false);
                         if (sessionData) {
